@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:id="mainContainer" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.MainController">
+   <children>
+      <AnchorPane prefHeight="50.0" style="-fx-background-color: #fff123;">
+         <children>
+            <HBox alignment="CENTER" spacing="3.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <Button mnemonicParsing="false" onAction="#loadMazeEditor" text="Edit Maze" />
+                  <Button mnemonicParsing="false" onAction="#loadHelp" text="Help" />
+               </children>
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <padding>
+                  <Insets left="7.0" />
+               </padding>
+            </HBox>
+            <HBox alignment="CENTER" layoutX="400.0" layoutY="-25.0" spacing="3.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <Button mnemonicParsing="false" onAction="#fold" text="Fold" />
+                  <Button fx:id="fullScreenMode" mnemonicParsing="false" onAction="#fullScreenMode" text="FullScreen" />
+                  <Button mnemonicParsing="false" onAction="#closeApp" text="Close" />
+               </children>
+               <padding>
+                  <Insets right="7.0" />
+               </padding>
+            </HBox>
+         </children>
+      </AnchorPane>
+   </children>
+</VBox>

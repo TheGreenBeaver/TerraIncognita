@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.*?>
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" stylesheets="@../styles/OldTombTextfields.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.MazeEditorController">
+   <children>
+      <GridPane maxWidth="-Infinity" minWidth="-Infinity" prefWidth="238.0" style="-fx-background-color: #A2A2A2;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <columnConstraints>
+          <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="131.0" minWidth="10.0" prefWidth="79.0" />
+          <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="156.0" minWidth="10.0" prefWidth="156.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints minHeight="10.0" prefHeight="30.0" valignment="CENTER" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" valignment="CENTER" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" valignment="CENTER" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" valignment="CENTER" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" valignment="CENTER" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" valignment="CENTER" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <TextField fx:id="mazeHeightInput" maxWidth="-Infinity" minWidth="-Infinity" onKeyTyped="#checkHeightInput" prefWidth="40.0" styleClass="highlightable-text" GridPane.columnIndex="1" />
+            <TextField fx:id="mazeWidthInput" maxWidth="-Infinity" minWidth="-Infinity" onKeyTyped="#checkWidthInput" prefWidth="40.0" styleClass="highlightable-text" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            <Label text="Maze Height" />
+            <Label text="Maze Width" GridPane.rowIndex="2" />
+            <Button mnemonicParsing="false" onAction="#saveProperties" text="OK" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+            <Label fx:id="mazeHeightHint" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <Label fx:id="mazeWidthHint" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+            <Label fx:id="submissionHint" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+            <Button mnemonicParsing="false" onAction="#solve" text="Solve this!" GridPane.rowIndex="5" />
+         </children>
+      </GridPane>
+      <VBox prefHeight="400.0" prefWidth="363.0" spacing="30.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <AnchorPane fx:id="mazeContainer" minHeight="-Infinity" minWidth="-Infinity" prefHeight="303.0" prefWidth="352.0" style="-fx-background-color: #FFFFFF;">
+<!--               <children>-->
+<!--                  <ImageView fx:id="treasure" fitHeight="50.0" fitWidth="50.0" layoutX="168.0" layoutY="325.0" onMouseDragged="#dragTile" onMousePressed="#selectTile" onMouseReleased="#dropTile" pickOnBounds="true" preserveRatio="true">-->
+<!--                     <image>-->
+<!--                        <Image url="@../images/treasure.jpg" />-->
+<!--                     </image>-->
+<!--                     <viewport>-->
+<!--                        <Rectangle2D height="600.0" minX="80.0" width="600.0" />-->
+<!--                     </viewport>-->
+<!--                  </ImageView>-->
+<!--                  <ImageView fx:id="entrance" fitHeight="50.0" fitWidth="50.0" layoutX="251.0" layoutY="325.0" onMouseDragged="#dragTile" onMousePressed="#selectTile" onMouseReleased="#dropTile" pickOnBounds="true" preserveRatio="true">-->
+<!--                     <image>-->
+<!--                        <Image url="@../images/entrance.jpg" />-->
+<!--                     </image>-->
+<!--                     <viewport>-->
+<!--                        <Rectangle2D height="800.0" minX="300.0" width="800.0" />-->
+<!--                     </viewport>-->
+<!--                  </ImageView>-->
+<!--                  <ImageView fx:id="portal" fitHeight="50.0" fitWidth="50.0" layoutX="309.0" layoutY="318.0" onMouseDragged="#dragTile" onMouseReleased="#dropTile" pickOnBounds="true" preserveRatio="true">-->
+<!--                     <image>-->
+<!--                        <Image url="@../images/portal.jpg" />-->
+<!--                     </image>-->
+<!--                     <viewport>-->
+<!--                        <Rectangle2D height="750.0" minX="230.0" minY="-40.0" width="750.0" />-->
+<!--                     </viewport>-->
+<!--                  </ImageView>-->
+<!--                  <ImageView fx:id="escape" fitHeight="50.0" fitWidth="50.0" layoutX="373.0" layoutY="318.0" onMouseDragged="#dragTile" onMousePressed="#selectTile" onMouseReleased="#dropTile" pickOnBounds="true" preserveRatio="true">-->
+<!--                     <image>-->
+<!--                        <Image url="@../images/escape.jpg" />-->
+<!--                     </image>-->
+<!--                     <viewport>-->
+<!--                        <Rectangle2D height="900.0" minX="400.0" width="900.0" />-->
+<!--                     </viewport>-->
+<!--                  </ImageView>-->
+<!--               </children>-->
+            </AnchorPane>
+         </children>
+         <opaqueInsets>
+            <Insets />
+         </opaqueInsets>
+      </VBox>
+   </children>
+</AnchorPane>
