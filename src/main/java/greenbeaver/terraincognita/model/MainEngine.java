@@ -43,7 +43,6 @@ public class MainEngine {
     private static Coordinate current; // initially set to null in solve(); shows the coordinate where the Player was at the moment when a new direction is calculated
     private static boolean firstStepEmergencyStopV; // initially set to false in solve(); shows if the Player met an obstacle during the vertical stage of firstStep and thus should now move on to the horizontal stage
     private static boolean firstStepEmergencyStopH; // initially set to false in solve(); shows if the Player met an obstacle during the horizontal stage of firstStep and thus should now end firstStep
-    private static boolean forcedReach; // initially set to false in solve(); shows if the Player has moved to an already visited cell due to some critical circumstances, such as bfs or obstacle passing
     private static Direction moment; // initially set to false in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
 
@@ -134,7 +133,6 @@ public class MainEngine {
                     failCount++;
                 }
                 case 3: {
-                    forcedReach = true;
                     general = lastTried.firstPerpendicular(); // so that the Player doesn't try the exact same route again; usually general direction isn't changed, after passing the obstacle the Player continues moving by a same pattern
                     return lastTried.opposite();
                 }
@@ -160,7 +158,7 @@ public class MainEngine {
             for (int i = 0; i < 4; i++) {
                 turn = turnAround(critical[i], !Direction.values()[i].getHorizontal());
                 if (turn != null) {
-                    lastTried = null;
+                    lastTried = turn;
                     return turn;
                 }
             }
@@ -236,7 +234,6 @@ public class MainEngine {
         }
 
         moveResult = currentCell.move(dir);
-        forcedReach = false;
         moment = null;
 
         switch (moveResult) {
@@ -287,7 +284,6 @@ public class MainEngine {
                         System.out.println("Visited " + Coordinate.getByRawNumber(num).toString());
                         steps.add(new MarkedCoordinate(Coordinate.getByRawNumber(num), true));
                     }
-                    forcedReach = true;
                     currentCell = maze[nowGoingTo.getY()][nowGoingTo.getX()];
                 }
 
@@ -352,7 +348,6 @@ public class MainEngine {
         lastCalculatedDirectionFailed = false;
         firstStepEmergencyStopH = false;
         firstStepEmergencyStopV = false;
-        forcedReach = false;
         moment = null;
         bordersHit = 0;
 
@@ -390,10 +385,6 @@ public class MainEngine {
 
     static boolean coordinateReachable(Coordinate coordinate) {
         return maze[coordinate.getY()][coordinate.getX()].getCellType().isReachable();
-    }
-
-    public static boolean isForcedReach() {
-        return forcedReach;
     }
 
     private static boolean reachableAndFitsOrUnknown(Coordinate coordinate) {

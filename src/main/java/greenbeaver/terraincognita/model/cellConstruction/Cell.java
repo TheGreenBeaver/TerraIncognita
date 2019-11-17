@@ -38,7 +38,7 @@ public class Cell extends ImageView {
             return MoveResult.UNREACHABLE_CELL;
         }
 
-        return (!MainEngine.coordinateUnknown(newCoordinate) && !MainEngine.isForcedReach())
+        return (!MainEngine.coordinateUnknown(newCoordinate))
                 ? MoveResult.ALREADY_VISITED_CELL
                 :  MoveResult.SUCCESSFUL;
     }
