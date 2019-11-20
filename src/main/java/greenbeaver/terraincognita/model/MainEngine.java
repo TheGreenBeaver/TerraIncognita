@@ -45,6 +45,7 @@ public class MainEngine {
     private static boolean firstStepEmergencyStopH; // initially set to false in solve(); shows if the Player met an obstacle during the horizontal stage of firstStep and thus should now end firstStep
     private static Direction moment; // initially set to false in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
+    private static String pickedTreasure; // TODO: just temporary!!!
 
     public static void setMazeHeight(int newMazeHeight) {
         mazeHeight = newMazeHeight;
@@ -133,7 +134,6 @@ public class MainEngine {
                     failCount++;
                 }
                 case 3: {
-                    general = lastTried.firstPerpendicular(); // so that the Player doesn't try the exact same route again; usually general direction isn't changed, after passing the obstacle the Player continues moving by a same pattern
                     return lastTried.opposite();
                 }
             }
@@ -181,6 +181,7 @@ public class MainEngine {
         switch (currentCell.getCellType()) {
             case TREASURE: {
                 treasureCollected = true;
+                pickedTreasure = "Picked Treasure at " + currentCell.getCoordinate().toString();
                 if (exit != null) {
 //                    Coordinate dist = currentCell.getCoordinate().subtract(exit);
 //                    verticalExitDist = dist.getY();
@@ -275,6 +276,7 @@ public class MainEngine {
                 }
                 Coordinate nowGoingTo = d.getGoingTo();
                 moment = d.getToReachActual();
+
                 lastTried = moment;
 
                 if (!nowGoingTo.equals(currentCell.getCoordinate())) {
@@ -356,7 +358,11 @@ public class MainEngine {
         while (!completed) {
             completed = makeMove();
         }
+        if (treasureCollected) {
+            System.out.println(pickedTreasure);
+        }
         System.out.println("COMPLETE");
+        System.out.println();
     }
 
     public static Cell[][] getMaze() {

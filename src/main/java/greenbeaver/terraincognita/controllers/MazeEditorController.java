@@ -146,7 +146,7 @@ public class MazeEditorController implements Initializable {
         submissionHint.setText("");
         MainEngine.setMazeHeight(Integer.parseInt(mazeHeightInput.getText()));
         MainEngine.setMazeWidth(Integer.parseInt(mazeWidthInput.getText()));
-        currentMaze = new MazeGrid(55);
+        currentMaze = new MazeGrid(30);
         ObservableList<Node> mazeContainerChildren = mazeContainer.getChildren();
         mazeContainerChildren.clear();
         mazeContainer.getChildren().add(currentMaze);

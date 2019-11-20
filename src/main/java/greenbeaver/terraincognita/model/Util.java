@@ -11,5 +11,6 @@ public class Util {
     public static final Image EXIT = new Image("/images/escape.jpg");
     public static final Image TREASURE = new Image("/images/treasure.jpg");
     public static final Image WALL = new Image("/images/wall.png");
+    public static final Image PORTAL = new Image("/images/portal.jpg");
 
 }

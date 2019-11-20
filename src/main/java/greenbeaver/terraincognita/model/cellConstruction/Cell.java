@@ -7,7 +7,7 @@ import javafx.scene.image.ImageView;
 public class Cell extends ImageView {
 
     private final static double MAX_FIT_SIZE = 55;
-    private final static double MIN_FIT_SIZE = 40;
+    private final static double MIN_FIT_SIZE = 20;
     private CellType cellType;
     private final Coordinate coordinate;
 
