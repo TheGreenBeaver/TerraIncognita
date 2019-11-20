@@ -10,7 +10,8 @@ public enum CellType {
     EXIT(true, 1, 0, Util.EXIT),
 
     EMPTY(true, MainEngine.cellAmount(), MainEngine.cellAmount(), Util.FLOOR),
-    WALL(false, MainEngine.cellAmount(), 0, Util.WALL);
+    WALL(false, MainEngine.cellAmount(), 0, Util.WALL),
+    PORTAL(true, 10, 0, Util.PORTAL);
 
     private final boolean reachable;
     private int maxAmount;
