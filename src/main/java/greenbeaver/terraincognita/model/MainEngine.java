@@ -169,7 +169,7 @@ public class MainEngine {
     }
 
     private static boolean successfulMoveScenario() {
-        int from = currentCell.getCoordinate().getRawNumber(); // where the move started; current was set to a proper value in calculateDirection() that happens before this
+        int from = currentCell.getCoordinate().getRawNumber(); // where the move started
         currentCell = moveResult.getResult();
         Coordinate tempCurrent = currentCell.getCoordinate();
         int to = tempCurrent.getRawNumber(); // where the Player is now actually
@@ -262,6 +262,10 @@ public class MainEngine {
             }
 
             case ALREADY_VISITED_CELL: { // does not count as a step (by now, while the portals aren't implemented)
+                int from = currentCell.getCoordinate().getRawNumber(); // where the move started
+                int to = moveResult.getResult().getCoordinate().getRawNumber();
+                adjacencyMatrix[from][to] = true; //TODO: when portals are implemented, this doesn't always happen; need to check for cellType
+                adjacencyMatrix[to][from] = true;
                 failCount = 0;
                 RadialCheck radialCheck = new RadialCheck(currentCell.getCoordinate()); // searches from a coordinate where the Player was before trying to make move
                 DestinationWithDirection d = radialCheck.find();
