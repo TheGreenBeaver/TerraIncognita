@@ -54,6 +54,10 @@ public enum CellType {
         return TREASURE.unavailable() && ENTRANCE.unavailable() && EXIT.unavailable();
     }
 
+    public int getUsedAmount() {
+        return usedAmount;
+    }
+
     public static void flush() {
         for (CellType type: values()) {
             type.usedAmount = type == EMPTY ? MainEngine.cellAmount() : 0;

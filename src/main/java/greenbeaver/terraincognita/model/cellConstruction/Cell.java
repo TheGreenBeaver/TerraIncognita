@@ -2,7 +2,16 @@ package greenbeaver.terraincognita.model.cellConstruction;
 
 import greenbeaver.terraincognita.model.MainEngine;
 import greenbeaver.terraincognita.model.Util;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
+import java.io.IOException;
 
 public class Cell extends ImageView {
 
@@ -20,7 +29,13 @@ public class Cell extends ImageView {
 
         setFitWidth(actualFitSize);
         setFitHeight(actualFitSize);
-        setOnMouseClicked(e -> onClick());
+        setOnMouseClicked(event -> {
+            try {
+                onClick(event);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public MoveResult move(Direction direction) {
@@ -51,11 +66,21 @@ public class Cell extends ImageView {
         return coordinate;
     }
 
-    private void onClick() {
-        cellType = cellType.switchType();
-        if (cellType == CellType.ENTRANCE) {
-            MainEngine.setEntrance(coordinate);
+    private void onClick(MouseEvent event) throws IOException {
+        if (event.getButton() == MouseButton.PRIMARY) {
+            cellType = cellType.switchType();
+            if (cellType == CellType.ENTRANCE) {
+                MainEngine.setEntrance(coordinate);
+            }
+            super.setImage(cellType.getImage());
+        } else if (event.getButton() == MouseButton.SECONDARY && cellType == CellType.PORTAL) {
+            Stage numSettings = new Stage();
+            Parent root = FXMLLoader.load(getClass().getResource("/fxml/PortalSettings.fxml"));
+            numSettings.setScene(new Scene(root));
+            numSettings.initModality(Modality.WINDOW_MODAL);
+            numSettings.setX(event.getScreenX());
+            numSettings.setY(event.getScreenY());
+            numSettings.showAndWait();
         }
-        super.setImage(cellType.getImage());
     }
 }
