@@ -5,6 +5,7 @@ import greenbeaver.terraincognita.model.MazeGrid;
 import greenbeaver.terraincognita.model.UIHandler;
 import greenbeaver.terraincognita.model.cellConstruction.Cell;
 import greenbeaver.terraincognita.model.cellConstruction.CellType;
+import greenbeaver.terraincognita.model.cellConstruction.Coordinate;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -26,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import static greenbeaver.terraincognita.model.Util.LINE_SEPARATOR;
@@ -203,8 +205,9 @@ public class MazeEditorController implements Initializable {
 
     @FXML
     void solve() {
-        if (CellType.fieldFilled()) {
+        if (CellType.fieldFilled() && UIHandler.portalNumsOK()) {
             MainEngine.setMaze(currentMaze.getMazeAsArray());
+            MainEngine.setPortalTransitions(UIHandler.getPortalTransitions());
             MainEngine.solve();
         } else {
             Stage alarm = new Stage(); // TODO: make a normal alarm window!!!

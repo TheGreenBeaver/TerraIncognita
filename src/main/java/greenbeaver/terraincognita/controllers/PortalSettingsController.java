@@ -1,5 +1,6 @@
 package greenbeaver.terraincognita.controllers;
 
+import greenbeaver.terraincognita.model.UIHandler;
 import greenbeaver.terraincognita.model.cellConstruction.CellType;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -21,9 +22,11 @@ public class PortalSettingsController implements Initializable {
         for (int i = 0; i < varAmount; i++) {
             variants.getItems().add(i + 1);
         }
+        variants.setValue(UIHandler.getCurrentPortalNum() + 1);
     }
 
     public void submit(ActionEvent actionEvent) {
+        UIHandler.setPortalNum(UIHandler.getCurrentPortal(), variants.getValue() - 1);
         ((Stage) ((Node) actionEvent.getSource()).getScene().getWindow()).close();
     }
 }

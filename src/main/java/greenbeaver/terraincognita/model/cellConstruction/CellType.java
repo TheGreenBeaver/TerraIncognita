@@ -51,7 +51,7 @@ public enum CellType {
     }
 
     public static boolean fieldFilled() {
-        return TREASURE.unavailable() && ENTRANCE.unavailable() && EXIT.unavailable();
+        return TREASURE.unavailable() && ENTRANCE.unavailable() && EXIT.unavailable() && PORTAL.usedAmount != 1;
     }
 
     public int getUsedAmount() {

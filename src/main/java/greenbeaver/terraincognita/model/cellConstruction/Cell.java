@@ -1,8 +1,10 @@
 package greenbeaver.terraincognita.model.cellConstruction;
 
 import greenbeaver.terraincognita.model.MainEngine;
+import greenbeaver.terraincognita.model.UIHandler;
 import greenbeaver.terraincognita.model.Util;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.ImageView;
@@ -13,6 +15,8 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Cell extends ImageView {
 
@@ -47,16 +51,28 @@ public class Cell extends ImageView {
         }
 
         Cell probableResult = MainEngine.getMaze()[newCoordinate.getY()][newCoordinate.getX()];
+        if (probableResult.getCellType() == CellType.PORTAL) {
+            Coordinate[] transitions = MainEngine.getPortalTransitions();
+            int portalIndex = 0;
+            while (!transitions[portalIndex].equals(probableResult.getCoordinate())) {
+                portalIndex++;
+            }
+            Coordinate actualNewCoordinate = transitions[(portalIndex == transitions.length - 1) ? 0 : portalIndex + 1];
+            Cell actualResult = MainEngine.getMaze()[actualNewCoordinate.getY()][actualNewCoordinate.getX()];
+            MoveResult.setResult(actualResult);
+            return MoveResult.PORTAL;
+        } else {
 
-        MoveResult.setResult(probableResult);
+            MoveResult.setResult(probableResult);
 
-        if (!probableResult.getCellType().isReachable()) {
-            return MoveResult.UNREACHABLE_CELL;
+            if (!probableResult.getCellType().isReachable()) {
+                return MoveResult.UNREACHABLE_CELL;
+            }
+
+            return (!MainEngine.coordinateUnknown(newCoordinate))
+                    ? MoveResult.ALREADY_VISITED_CELL
+                    : MoveResult.SUCCESSFUL;
         }
-
-        return (!MainEngine.coordinateUnknown(newCoordinate))
-                ? MoveResult.ALREADY_VISITED_CELL
-                :  MoveResult.SUCCESSFUL;
     }
 
     public CellType getCellType() {
@@ -69,17 +85,32 @@ public class Cell extends ImageView {
 
     private void onClick(MouseEvent event) throws IOException {
         if (event.getButton() == MouseButton.PRIMARY) {
-            cellType = cellType.switchType();
-            if (cellType == CellType.ENTRANCE) {
-                MainEngine.setEntrance(coordinate);
+            if (cellType == CellType.PORTAL) {
+                UIHandler.removePortal(coordinate);
             }
+            cellType = cellType.switchType();
+
+            switch (cellType) {
+                case PORTAL: {
+                    UIHandler.createPortal(coordinate);
+                    break;
+                }
+
+                case ENTRANCE: {
+                    MainEngine.setEntrance(coordinate);
+                    break;
+                }
+            }
+
             super.setImage(cellType.getImage());
         } else if (event.getButton() == MouseButton.SECONDARY && cellType == CellType.PORTAL) {
+            UIHandler.setCurrentPortal(coordinate);
             Stage numSettings = new Stage();
             numSettings.initStyle(StageStyle.TRANSPARENT);
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/PortalSettings.fxml"));
             numSettings.setScene(new Scene(root));
             numSettings.initModality(Modality.WINDOW_MODAL);
+            numSettings.initOwner(((Node) event.getSource()).getScene().getWindow());
             numSettings.setX(event.getScreenX());
             numSettings.setY(event.getScreenY());
             numSettings.showAndWait();

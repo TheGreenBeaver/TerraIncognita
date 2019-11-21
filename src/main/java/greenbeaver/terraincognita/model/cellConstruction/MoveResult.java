@@ -4,7 +4,8 @@ public enum MoveResult {
     SUCCESSFUL,
     MAZE_BORDER,
     UNREACHABLE_CELL,
-    ALREADY_VISITED_CELL;
+    ALREADY_VISITED_CELL,
+    PORTAL;
 
     static Cell result = null;
 

@@ -11,6 +11,14 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class MainEngine {
 
+    public static Coordinate[] getPortalTransitions() {
+        return portalTransitions;
+    }
+
+    public static void setPortalTransitions(Coordinate[] portalTransitions) {
+        MainEngine.portalTransitions = portalTransitions;
+    }
+
     private static class MarkedCoordinate {
         Coordinate coordinate;
         boolean couldActuallyReach;
@@ -21,6 +29,7 @@ public class MainEngine {
         }
     }
 
+    private static Coordinate[] portalTransitions;
     private static int mazeHeight; // set by setMazeHeight() from MazeEditorController when the maze is created
     private static int mazeWidth; // set by setMazeWidth() from MazeEditorController when the maze is created
     private static boolean treasureCollected; // initially set to false in solve()
@@ -294,6 +303,11 @@ public class MainEngine {
 
             case MAZE_BORDER: {
                 // TODO: Implement when portals are included so current coordinate might not be computable
+            }
+
+            case PORTAL: {
+                System.out.println("Travelled through portal from " + currentCell.getCoordinate().toString() + " to " + moveResult.getResult().getCoordinate().toString());
+                
             }
         }
 
