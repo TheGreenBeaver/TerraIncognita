@@ -10,6 +10,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 
@@ -75,6 +76,7 @@ public class Cell extends ImageView {
             super.setImage(cellType.getImage());
         } else if (event.getButton() == MouseButton.SECONDARY && cellType == CellType.PORTAL) {
             Stage numSettings = new Stage();
+            numSettings.initStyle(StageStyle.TRANSPARENT);
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/PortalSettings.fxml"));
             numSettings.setScene(new Scene(root));
             numSettings.initModality(Modality.WINDOW_MODAL);
