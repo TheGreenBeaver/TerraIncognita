@@ -1,20 +1,22 @@
 package greenbeaver.terraincognita.model.cellConstruction;
 
 public enum Direction {
-    UP(0, -1, false),
-    RIGHT(1, 0, true),
-    DOWN(0, 1, false),
-    LEFT(-1, 0, true);
+    UP(0, -1, false, true),
+    RIGHT(1, 0, true, false),
+    DOWN(0, 1, false, false),
+    LEFT(-1, 0, true, true);
 
     private final int toX;
     private final int toY;
 
     private final boolean horizontal;
+    private final boolean positive;
 
-    Direction(int toX, int toY, boolean horizontal) {
+    Direction(int toX, int toY, boolean horizontal, boolean positive) {
         this.toX = toX;
         this.toY = toY;
         this.horizontal = horizontal;
+        this.positive = positive;
     }
 
     public static Direction getByConstructor(int byX, int byY) {
@@ -65,5 +67,9 @@ public enum Direction {
 
     public boolean getHorizontal() {
         return horizontal;
+    }
+
+    public boolean isPositive() {
+        return positive;
     }
 }

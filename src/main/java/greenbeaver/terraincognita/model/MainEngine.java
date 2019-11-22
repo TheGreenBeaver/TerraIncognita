@@ -11,14 +11,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class MainEngine {
 
-    public static Coordinate[] getPortalTransitions() {
-        return portalTransitions;
-    }
-
-    public static void setPortalTransitions(Coordinate[] portalTransitions) {
-        MainEngine.portalTransitions = portalTransitions;
-    }
-
     private static class MarkedCoordinate {
         Coordinate coordinate;
         boolean couldActuallyReach;
@@ -29,9 +21,6 @@ public class MainEngine {
         }
     }
 
-    private static Coordinate beforePortal;
-    private static boolean blindMode;
-    private static Coordinate[] portalTransitions;
     private static int mazeHeight; // set by setMazeHeight() from MazeEditorController when the maze is created
     private static int mazeWidth; // set by setMazeWidth() from MazeEditorController when the maze is created
     private static boolean treasureCollected; // initially set to false in solve()
@@ -39,7 +28,6 @@ public class MainEngine {
     private static Coordinate exit; // initially set to null in solve()
     private static Cell currentCell; // initially set to entrance in solve()
     private static Cell[][] maze; // set by setMaze() from MazeEditorController when the maze is created
-    private static boolean[][] known; // initially set to a matrix filled by false in solve(); shows if some coordinate has already been visited or tried to be visited and appeared to be a wall
     private static boolean[][] adjacencyMatrix; // initially set to a matrix filled by false in solve()
     private static boolean firstStep; // initially set to true in solve(); shows if the Player is now trying to reach the bottom right corner of the maze to then start scanning it in zigzags
     private static boolean shift; // initially set to false in solve(); shows if the Player should now change their X coordinate in case they are at the bottom or top border
@@ -56,23 +44,61 @@ public class MainEngine {
     private static boolean firstStepEmergencyStopH; // initially set to false in solve(); shows if the Player met an obstacle during the horizontal stage of firstStep and thus should now end firstStep
     private static Direction moment; // initially set to false in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
-    private static String pickedTreasure; // TODO: just temporary!!!
+    private static Coordinate[] portalTransitions; // set by setPortalTransitions() from MazeEditorController when the maze is created
+    private static Coordinate beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
+    private static boolean blindMode; // initially set to false in solve(); shows if Player now knows his exact coordinate
 
-    public static void setMazeHeight(int newMazeHeight) {
-        mazeHeight = newMazeHeight;
+    // Getters and setters
+    public static Coordinate[] getPortalTransitions() {
+        return portalTransitions;
+    }
+
+    public static void setPortalTransitions(Coordinate[] portalTransitions) {
+        MainEngine.portalTransitions = portalTransitions;
     }
 
     public static int getMazeHeight() {
         return mazeHeight;
     }
 
-    public static void setMazeWidth(int newMazeWidth) {
-        mazeWidth = newMazeWidth;
+    public static void setMazeHeight(int newMazeHeight) {
+        mazeHeight = newMazeHeight;
     }
 
     public static int getMazeWidth() {
         return mazeWidth;
     }
+
+    public static void setMazeWidth(int newMazeWidth) {
+        mazeWidth = newMazeWidth;
+    }
+
+    public static Cell[][] getMaze() {
+        return maze;
+    }
+
+    public static void setMaze(Cell[][] maze) {
+        MainEngine.maze = maze;
+    }
+
+    public static void setEntrance(Coordinate entrance) {
+        MainEngine.entrance = entrance;
+    }
+
+    public static ArrayList<MarkedCoordinate> getSteps() {
+        return steps;
+    }
+
+    public static int cellAmount() {
+        return mazeHeight * mazeWidth;
+    }
+
+    public static boolean isBlindMode() {
+        return blindMode;
+    }
+
+
+
 
     private static void linearMaze(boolean horizontal) {
         int entranceCoordinate = horizontal ? entrance.getX() : entrance.getY();
@@ -132,20 +158,28 @@ public class MainEngine {
             switch (failCount) {
                 case 1: {
                     probable = lastTried.firstPerpendicular();
-                    if (reachableAndFitsOrUnknown(current.add(probable))) { // don't return the direction if it knowingly leads out of maze borders or to a wall; this way we save some loop cycles
+                    Coordinate.CoordinateState probableState = blindMode
+                            ? current.add(probable).getLocalCoordinateState()
+                            : current.add(probable).getCoordinateState();
+                    if (probableState == Coordinate.CoordinateState.KNOWN_REACHABLE
+                            || probableState == Coordinate.CoordinateState.UNKNOWN) { // don't return the direction if it knowingly leads out of maze borders or to a wall; this way we save some loop cycles
                         return probable;
                     }
                     failCount++; // try another direction immediately
                 }
                 case 2: {
                     probable = lastTried.firstPerpendicular().opposite();
-                    if (reachableAndFitsOrUnknown(current.add(probable))) { // the same
+                    Coordinate.CoordinateState probableState = blindMode
+                            ? current.add(probable).getLocalCoordinateState()
+                            : current.add(probable).getCoordinateState();
+                    if (probableState == Coordinate.CoordinateState.KNOWN_REACHABLE
+                            || probableState == Coordinate.CoordinateState.UNKNOWN) { // the same
                         return probable;
                     }
                     failCount++;
                 }
                 case 3: {
-                    return lastTried.opposite();
+                    return lastTried.opposite(); // TODO: 22.11.2019 Finished somewhere over here!!! 
                 }
             }
 //        } else if (exit != null && treasureCollected) {
@@ -184,7 +218,7 @@ public class MainEngine {
         Coordinate wouldBe = current.add(toReturn);
         int count = 0;
         while (!wouldBe.fits() ||
-                known[wouldBe.getY()][wouldBe.getX()]
+                coordinateStates[wouldBe.getY()][wouldBe.getX()]
                         && !maze[wouldBe.getY()][wouldBe.getX()].getCellType().isReachable()) {
             switch (count++) {
                 case 0: {
@@ -254,9 +288,6 @@ public class MainEngine {
     }
 
     private static boolean makeMove() {
-
-        known[currentCell.getCoordinate().getY()][currentCell.getCoordinate().getX()] = true; // if we are standing in a cell, it should always be marked as known
-
         Direction dir = (moment == null) ? calculateDirection() : moment; // if we've just used bfs and now just need to reach the actual nearest unknown cell, we don't need to calculate direction
 
         if (bordersHit == 2) {
@@ -281,7 +312,7 @@ public class MainEngine {
 
             case UNREACHABLE_CELL: { // does count as a step
                 Coordinate resC = moveResult.getResult().getCoordinate();
-                known[resC.getY()][resC.getX()] = true; // coordinate the Player tried to reach still gets known, it's just that it's now known as unreachable
+                coordinateStates[resC.getY()][resC.getX()] = true; // coordinate the Player tried to reach still gets known, it's just that it's now known as unreachable
                 steps.add(new MarkedCoordinate(resC, false));
                 System.out.println("Tried to reach " + resC.toString() + ", but met an obstacle");
                 if (!firstStep) {
@@ -383,13 +414,9 @@ public class MainEngine {
     }
 
     public static void solve() {
-
-        beforePortal = null;
-        blindMode = false;
         treasureCollected = false;
         exit = null;
         currentCell = maze[entrance.getY()][entrance.getX()];
-        known = new boolean[mazeHeight][mazeWidth];
         adjacencyMatrix = new boolean[cellAmount()][cellAmount()];
         firstStep = true;
         shift = false;
@@ -403,49 +430,16 @@ public class MainEngine {
         firstStepEmergencyStopV = false;
         moment = null;
         bordersHit = 0;
+        beforePortal = null;
+        blindMode = false;
+        Coordinate.setNewField();
 
         boolean completed = false;
 
         while (!completed) {
             completed = makeMove();
         }
-        if (treasureCollected) {
-            System.out.println(pickedTreasure);
-        }
         System.out.println("COMPLETE");
         System.out.println();
-    }
-
-    public static Cell[][] getMaze() {
-        return maze;
-    }
-
-    public static void setMaze(Cell[][] maze) {
-        MainEngine.maze = maze;
-    }
-
-    public static void setEntrance(Coordinate entrance) {
-        MainEngine.entrance = entrance;
-    }
-
-    public static ArrayList<MarkedCoordinate> getSteps() {
-        return steps;
-    }
-
-    public static int cellAmount() {
-        return mazeHeight * mazeWidth;
-    }
-
-    public static boolean coordinateUnknown(Coordinate coordinate) {
-        return !known[coordinate.getY()][coordinate.getX()];
-    }
-
-    static boolean coordinateReachable(Coordinate coordinate) {
-        return maze[coordinate.getY()][coordinate.getX()].getCellType().isReachable();
-    }
-
-    private static boolean reachableAndFitsOrUnknown(Coordinate coordinate) {
-        return coordinate.fits() &&
-                (coordinateReachable(coordinate) && !coordinateUnknown(coordinate) || coordinateUnknown(coordinate));
     }
 }
