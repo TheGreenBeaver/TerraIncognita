@@ -29,6 +29,8 @@ public class MainEngine {
         }
     }
 
+    private static Coordinate beforePortal;
+    private static boolean blindMode;
     private static Coordinate[] portalTransitions;
     private static int mazeHeight; // set by setMazeHeight() from MazeEditorController when the maze is created
     private static int mazeWidth; // set by setMazeWidth() from MazeEditorController when the maze is created
@@ -161,7 +163,6 @@ public class MainEngine {
             lastTried = Direction.DOWN;
             return Direction.DOWN;
         } else {
-
             Direction turn;
             int[] critical = {-1, mazeWidth, mazeHeight, -1};
             for (int i = 0; i < 4; i++) {
@@ -173,8 +174,34 @@ public class MainEngine {
             }
         }
 
-        lastTried = general;
-        return general;
+        Direction toReturn = finalCheck();
+        lastTried = toReturn;
+        return toReturn;
+    }
+
+    private static Direction finalCheck() {
+        Direction toReturn = general;
+        Coordinate wouldBe = current.add(toReturn);
+        int count = 0;
+        while (!wouldBe.fits() ||
+                known[wouldBe.getY()][wouldBe.getX()]
+                        && !maze[wouldBe.getY()][wouldBe.getX()].getCellType().isReachable()) {
+            switch (count++) {
+                case 0: {
+                    toReturn = general.firstPerpendicular();
+                    break;
+                }
+                case 1: {
+                    toReturn = general.firstPerpendicular().opposite();
+                    break;
+                }
+                case 2: {
+                    toReturn = general.opposite();
+                }
+            }
+            wouldBe = current.add(toReturn);
+        }
+        return toReturn;
     }
 
     private static boolean successfulMoveScenario() {
@@ -184,7 +211,7 @@ public class MainEngine {
         int to = tempCurrent.getRawNumber(); // where the Player is now actually
         steps.add(new MarkedCoordinate(tempCurrent, true));
         System.out.println("Visited " + tempCurrent.toString());
-        adjacencyMatrix[from][to] = true; //TODO: when portals are implemented, this doesn't always happen; need to check for cellType
+        adjacencyMatrix[from][to] = true;
         adjacencyMatrix[to][from] = true;
 
         switch (currentCell.getCellType()) {
@@ -271,6 +298,10 @@ public class MainEngine {
             }
 
             case ALREADY_VISITED_CELL: { // does not count as a step (by now, while the portals aren't implemented)
+                int from = currentCell.getCoordinate().getRawNumber(); // where the move started
+                int to = moveResult.getResult().getCoordinate().getRawNumber();
+                adjacencyMatrix[from][to] = true;
+                adjacencyMatrix[to][from] = true;
                 failCount = 0;
                 RadialCheck radialCheck = new RadialCheck(currentCell.getCoordinate()); // searches from a coordinate where the Player was before trying to make move
                 DestinationWithDirection d = radialCheck.find();
@@ -307,7 +338,11 @@ public class MainEngine {
 
             case PORTAL: {
                 System.out.println("Travelled through portal from " + currentCell.getCoordinate().toString() + " to " + moveResult.getResult().getCoordinate().toString());
-                
+                int from = currentCell.getCoordinate().getRawNumber(); // where the move started
+                int to = moveResult.getResult().getCoordinate().getRawNumber();
+                adjacencyMatrix[from][to] = true;
+                blindMode = true;
+                beforePortal = currentCell.getCoordinate();
             }
         }
 
@@ -349,6 +384,8 @@ public class MainEngine {
 
     public static void solve() {
 
+        beforePortal = null;
+        blindMode = false;
         treasureCollected = false;
         exit = null;
         currentCell = maze[entrance.getY()][entrance.getX()];
