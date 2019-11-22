@@ -45,8 +45,10 @@ public class MainEngine {
     private static Direction moment; // initially set to false in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
     private static Coordinate[] portalTransitions; // set by setPortalTransitions() from MazeEditorController when the maze is created
-    private static Coordinate beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
+    private static Cell beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
+    private static Direction ledToLastPortal; // initially set to null in solve(); Direction that led to the last visited portal
     private static boolean blindMode; // initially set to false in solve(); shows if Player now knows his exact coordinate
+    private static Coordinate localCoordinate; // initially set to null in solve(); used instead of real coordinate during blindMode
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -97,6 +99,10 @@ public class MainEngine {
         return blindMode;
     }
 
+    public static Coordinate getLocalCoordinate() {
+        return localCoordinate;
+    }
+
 
 
 
@@ -137,12 +143,12 @@ public class MainEngine {
 
     private static Direction calculateDirection() {
 
-        current = currentCell.getCoordinate(); // coordinate where the player was BEFORE moving!!!
+        current = blindMode ? localCoordinate : currentCell.getCoordinate(); // coordinate where the player was BEFORE moving!!!
 
         if (mazeHeight == 1) {
-            linearMaze(true);
+            linearMaze(true); // TODO: check this later
         } else if (mazeWidth == 1) {
-            linearMaze(false);
+            linearMaze(false); // TODO: check this later
         } else if (firstStep) { // first of all, Player tries to reach the bottom right corner to then continue scanning the maze in zigzags
             if (current.getY() < mazeHeight - 1 && !firstStepEmergencyStopV) { // if not at the bottom and haven't met any obstacles on the way down yet
                 general = Direction.DOWN;
@@ -179,7 +185,7 @@ public class MainEngine {
                     failCount++;
                 }
                 case 3: {
-                    return lastTried.opposite(); // TODO: 22.11.2019 Finished somewhere over here!!! 
+                    return lastTried.opposite(); // TODO: 22.11.2019 Finished somewhere over here!!!
                 }
             }
 //        } else if (exit != null && treasureCollected) {
@@ -251,7 +257,6 @@ public class MainEngine {
         switch (currentCell.getCellType()) {
             case TREASURE: {
                 treasureCollected = true;
-                pickedTreasure = "Picked Treasure at " + currentCell.getCoordinate().toString();
                 if (exit != null) {
 //                    Coordinate dist = currentCell.getCoordinate().subtract(exit);
 //                    verticalExitDist = dist.getY();
@@ -311,10 +316,13 @@ public class MainEngine {
             }
 
             case UNREACHABLE_CELL: { // does count as a step
-                Coordinate resC = moveResult.getResult().getCoordinate();
-                coordinateStates[resC.getY()][resC.getX()] = true; // coordinate the Player tried to reach still gets known, it's just that it's now known as unreachable
-                steps.add(new MarkedCoordinate(resC, false));
-                System.out.println("Tried to reach " + resC.toString() + ", but met an obstacle");
+                Coordinate resC = blindMode ? localCoordinate.add(dir) : moveResult.getResult().getCoordinate();
+                if (blindMode) {
+                    localCoordinate = resC;
+                }
+                resC.setCoordinateState(Coordinate.CoordinateState.KNOWN_UNREACHABLE, null);
+                steps.add(new MarkedCoordinate(moveResult.getResult().getCoordinate(), false));
+                System.out.println("Tried to reach " + moveResult.getResult().getCoordinate().toString() + ", but met an obstacle");
                 if (!firstStep) {
                     lastCalculatedDirectionFailed = true;
                     failCount++;
@@ -323,7 +331,14 @@ public class MainEngine {
                 }
                 if (failCount == 4) {
                     System.out.println("Blocked at " + current.toString());
-                    return true;
+                    if (blindMode) {
+                        blindMode = false;
+                        System.out.println("Last passed portal turned out to lead to a blocked cell, returning to " + beforePortal.getCoordinate().toString());
+                        currentCell = beforePortal;
+                        beforePortal.getCoordinate().add(ledToLastPortal).setCoordinateState(Coordinate.CoordinateState.KNOWN_BAD_PORTAL, null);
+                    } else {
+                        return true;
+                    }
                 }
                 break;
             }
@@ -373,7 +388,7 @@ public class MainEngine {
                 int to = moveResult.getResult().getCoordinate().getRawNumber();
                 adjacencyMatrix[from][to] = true;
                 blindMode = true;
-                beforePortal = currentCell.getCoordinate();
+                beforePortal = currentCell;
             }
         }
 
@@ -431,7 +446,9 @@ public class MainEngine {
         moment = null;
         bordersHit = 0;
         beforePortal = null;
+        ledToLastPortal = null;
         blindMode = false;
+        localCoordinate = null;
         Coordinate.setNewField();
 
         boolean completed = false;

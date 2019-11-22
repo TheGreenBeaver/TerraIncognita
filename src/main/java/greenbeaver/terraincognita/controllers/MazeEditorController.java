@@ -3,9 +3,7 @@ package greenbeaver.terraincognita.controllers;
 import greenbeaver.terraincognita.model.MainEngine;
 import greenbeaver.terraincognita.model.MazeGrid;
 import greenbeaver.terraincognita.model.UIHandler;
-import greenbeaver.terraincognita.model.cellConstruction.Cell;
 import greenbeaver.terraincognita.model.cellConstruction.CellType;
-import greenbeaver.terraincognita.model.cellConstruction.Coordinate;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -14,7 +12,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
@@ -27,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import static greenbeaver.terraincognita.model.Util.LINE_SEPARATOR;
@@ -152,6 +148,7 @@ public class MazeEditorController implements Initializable {
         ObservableList<Node> mazeContainerChildren = mazeContainer.getChildren();
         mazeContainerChildren.clear();
         mazeContainer.getChildren().add(currentMaze);
+        UIHandler.clearUIHandler();
     }
 
     @FXML
@@ -201,7 +198,6 @@ public class MazeEditorController implements Initializable {
             }
         }
     }
-
 
     @FXML
     void solve() {

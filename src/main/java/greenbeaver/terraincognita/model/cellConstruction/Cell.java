@@ -53,23 +53,19 @@ public class Cell extends ImageView {
         Cell probableResult = MainEngine.getMaze()[newCoordinate.getY()][newCoordinate.getX()];
         if (probableResult.getCellType() == CellType.PORTAL) {
             Coordinate[] transitions = MainEngine.getPortalTransitions();
-            int portalIndex = 0;
-            while (!transitions[portalIndex].equals(probableResult.getCoordinate())) {
-                portalIndex++;
-            }
+            int portalIndex = UIHandler.getNumOfPortal(probableResult.coordinate);
             Coordinate actualNewCoordinate = transitions[(portalIndex == transitions.length - 1) ? 0 : portalIndex + 1];
             Cell actualResult = MainEngine.getMaze()[actualNewCoordinate.getY()][actualNewCoordinate.getX()];
             MoveResult.setResult(actualResult);
             return MoveResult.PORTAL;
         } else {
-
             MoveResult.setResult(probableResult);
 
             if (!probableResult.getCellType().isReachable()) {
                 return MoveResult.UNREACHABLE_CELL;
             }
 
-            return (!MainEngine.coordinateUnknown(newCoordinate))
+            return newCoordinate.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE
                     ? MoveResult.ALREADY_VISITED_CELL
                     : MoveResult.SUCCESSFUL;
         }

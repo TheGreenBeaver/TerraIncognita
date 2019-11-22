@@ -8,13 +8,21 @@ import java.util.Map;
 
 public class UIHandler {
     private static Coordinate currentPortal;
-    private static boolean continueWithDangerousInput = false;
+    private static boolean continueWithDangerousInput;
     private static final HashMap<Coordinate, Integer> numsOfPortals;
     private static final int[] amounts;
     static {
-        currentPortal = null;
         numsOfPortals = new HashMap<>();
         amounts = new int[10];
+    }
+
+    public static void clearUIHandler() {
+        continueWithDangerousInput = false;
+        currentPortal = null;
+        numsOfPortals.clear();
+        for (int i = 0; i < 10; i++) {
+            amounts[i] = 0;
+        }
     }
 
     public static Coordinate getCurrentPortal() {
@@ -62,6 +70,10 @@ public class UIHandler {
             transitions[entry.getValue()] = entry.getKey();
         }
         return transitions;
+    }
+
+    public static int getNumOfPortal(Coordinate portal) {
+        return numsOfPortals.get(portal);
     }
 
     public static void setContinueWithDangerousInput(boolean continueWithDangerousInput) {
