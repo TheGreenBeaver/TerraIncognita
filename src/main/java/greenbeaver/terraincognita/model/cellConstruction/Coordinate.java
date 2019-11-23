@@ -10,6 +10,7 @@ public class Coordinate {
         KNOWN_UNREACHABLE,
         KNOWN_REACHABLE,
         KNOWN_BAD_PORTAL,
+        KNOWN_PORTAL,
         KNOWN_MAZE_BORDER
     }
 
@@ -66,12 +67,13 @@ public class Coordinate {
     }
 
     public int getRawNumber() {
-        return MainEngine.getMazeWidth() * y + x;
+        return (MainEngine.isBlindMode() ? MainEngine.getMazeWidth() * 2 + 1 : MainEngine.getMazeWidth()) * y + x;
     }
 
     public static Coordinate getByRawNumber(int rawNumber) {
-        int y = rawNumber / MainEngine.getMazeWidth();
-        int x = rawNumber % MainEngine.getMazeWidth();
+        int div = MainEngine.isBlindMode() ? MainEngine.getMazeWidth() * 2 + 1 : MainEngine.getMazeWidth();
+        int y = rawNumber / div;
+        int x = rawNumber % div;
 
         return new Coordinate(x, y);
     }

@@ -29,12 +29,11 @@ public class MainEngine {
     private static Cell currentCell; // initially set to entrance in solve()
     private static Cell[][] maze; // set by setMaze() from MazeEditorController when the maze is created
     private static boolean[][] adjacencyMatrix; // initially set to a matrix filled by false in solve()
+    private static boolean[][] localAdjacencyMatrix;
     private static boolean firstStep; // initially set to true in solve(); shows if the Player is now trying to reach the bottom right corner of the maze to then start scanning it in zigzags
     private static boolean shift; // initially set to false in solve(); shows if the Player should now change their X coordinate in case they are at the bottom or top border
     private static Direction general; // initially set to Direction.UP() in solve(); shows what overall direction the Player is moving now, not paying attention to firstStep or shift
     private static ArrayList<MarkedCoordinate> steps; // initially set to an ArrayList with only entrance in it in solve(); stores all the cells that the Player visited or tried to visit
-    private static int verticalExitDist; // TODO: this will be used when portals are implemented
-    private static int horizontalExitDist; // TODO: this will be used when portals are implemented
     private static MoveResult moveResult; // initially set to null in solve()
     private static Direction lastTried; // initially set to null in solve()
     private static int failCount; // initially set to 0 in solve; shows how much times in a row the Player failed to move in a calculated direction
@@ -42,13 +41,17 @@ public class MainEngine {
     private static Coordinate current; // initially set to null in solve(); shows the coordinate where the Player was at the moment when a new direction is calculated
     private static boolean firstStepEmergencyStopV; // initially set to false in solve(); shows if the Player met an obstacle during the vertical stage of firstStep and thus should now move on to the horizontal stage
     private static boolean firstStepEmergencyStopH; // initially set to false in solve(); shows if the Player met an obstacle during the horizontal stage of firstStep and thus should now end firstStep
-    private static Direction moment; // initially set to false in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
+    private static Direction moment; // initially set to null in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
     private static Coordinate[] portalTransitions; // set by setPortalTransitions() from MazeEditorController when the maze is created
     private static Cell beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
     private static Direction ledToLastPortal; // initially set to null in solve(); Direction that led to the last visited portal
     private static boolean blindMode; // initially set to false in solve(); shows if Player now knows his exact coordinate
     private static Coordinate localCoordinate; // initially set to null in solve(); used instead of real coordinate during blindMode
+    private static boolean[] rowContainsPortal;
+    private static boolean yCoordinateDefined;
+    private static int distanceToBottom;
+    private static int distanceToRight;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -95,6 +98,10 @@ public class MainEngine {
         return mazeHeight * mazeWidth;
     }
 
+    private static int localCellAmount() {
+        return (mazeWidth * 2 + 1) * (mazeHeight * 2 + 1);
+    }
+
     public static boolean isBlindMode() {
         return blindMode;
     }
@@ -102,9 +109,6 @@ public class MainEngine {
     public static Coordinate getLocalCoordinate() {
         return localCoordinate;
     }
-
-
-
 
     private static void linearMaze(boolean horizontal) {
         int entranceCoordinate = horizontal ? entrance.getX() : entrance.getY();
@@ -150,9 +154,9 @@ public class MainEngine {
         } else if (mazeWidth == 1) {
             linearMaze(false); // TODO: check this later
         } else if (firstStep) { // first of all, Player tries to reach the bottom right corner to then continue scanning the maze in zigzags
-            if (current.getY() < mazeHeight - 1 && !firstStepEmergencyStopV) { // if not at the bottom and haven't met any obstacles on the way down yet
+            if ((current.getY() < mazeHeight - 1 || blindMode) && !firstStepEmergencyStopV) { // if not at the bottom and haven't met any obstacles on the way down yet
                 general = Direction.DOWN;
-            } else if (current.getX() < mazeWidth - 1 && !firstStepEmergencyStopH) { // if not at the right border and haven't met any obstacles on the way right yet
+            } else if ((current.getX() < mazeWidth - 1 || blindMode) && !firstStepEmergencyStopH) { // if not at the right border and haven't met any obstacles on the way right yet
                 general = Direction.RIGHT;
             } else {
                 firstStep = false;
@@ -344,10 +348,17 @@ public class MainEngine {
             }
 
             case ALREADY_VISITED_CELL: { // does not count as a step (by now, while the portals aren't implemented)
-                int from = currentCell.getCoordinate().getRawNumber(); // where the move started
-                int to = moveResult.getResult().getCoordinate().getRawNumber();
-                adjacencyMatrix[from][to] = true;
-                adjacencyMatrix[to][from] = true;
+                if (!blindMode) {
+                    int from = currentCell.getCoordinate().getRawNumber(); // where the move started
+                    int to = moveResult.getResult().getCoordinate().getRawNumber();
+                    adjacencyMatrix[from][to] = true;
+                    adjacencyMatrix[to][from] = true;
+                } else {
+                    int from = localCoordinate.getRawNumber(); // where the move started
+                    int to = moveResult.getResult().getCoordinate().getRawNumber();
+                    adjacencyMatrix[from][to] = true;
+                    adjacencyMatrix[to][from] = true;
+                }
                 failCount = 0;
                 RadialCheck radialCheck = new RadialCheck(currentCell.getCoordinate()); // searches from a coordinate where the Player was before trying to make move
                 DestinationWithDirection d = radialCheck.find();
@@ -379,16 +390,29 @@ public class MainEngine {
             }
 
             case MAZE_BORDER: {
-                // TODO: Implement when portals are included so current coordinate might not be computable
+                if (!firstStepEmergencyStopV) {
+                    yCoordinateDefined = true;
+                    firstStepEmergencyStopV = true;
+                    localCoordinate.add(dir).setCoordinateState(Coordinate.CoordinateState.KNOWN_MAZE_BORDER, dir);
+                }
             }
 
             case PORTAL: {
                 System.out.println("Travelled through portal from " + currentCell.getCoordinate().toString() + " to " + moveResult.getResult().getCoordinate().toString());
                 int from = currentCell.getCoordinate().getRawNumber(); // where the move started
-                int to = moveResult.getResult().getCoordinate().getRawNumber();
+                int to = moveResult.getResult().getCoordinate().getRawNumber(); // after teleportation
                 adjacencyMatrix[from][to] = true;
-                blindMode = true;
+
+                if (yCoordinateDefined) {
+                    rowContainsPortal[currentCell.getCoordinate().getY()] = true;
+                }
+
                 beforePortal = currentCell;
+                ledToLastPortal = dir;
+
+                currentCell.getCoordinate().add(dir).setCoordinateState(Coordinate.CoordinateState.KNOWN_PORTAL, null);
+
+                clearLocals();
             }
         }
 
@@ -428,11 +452,36 @@ public class MainEngine {
         throw new NullPointerException("No path from " + startC.toString() + " to " + destC.toString());
     }
 
+    private static void clearLocals() {
+
+        blindMode = true;
+
+        for (int i = 0; i < localCellAmount(); i++) {
+            for (int j = 0; j < localCellAmount(); j++) {
+                localAdjacencyMatrix[i][j] = false;
+            }
+        }
+
+        firstStep = true;
+        firstStepEmergencyStopH = false;
+        firstStepEmergencyStopV = false;
+
+        general = Direction.UP;
+        shift = false;
+
+        localCoordinate = new Coordinate(mazeWidth, mazeHeight);
+        Coordinate.clearLocalCoordinateStates();
+        distanceToBottom = 0;
+        distanceToRight = 0;
+        yCoordinateDefined = false;
+    }
+
     public static void solve() {
         treasureCollected = false;
         exit = null;
         currentCell = maze[entrance.getY()][entrance.getX()];
         adjacencyMatrix = new boolean[cellAmount()][cellAmount()];
+        localAdjacencyMatrix = new boolean[localCellAmount()][localCellAmount()];
         firstStep = true;
         shift = false;
         general = Direction.UP;
@@ -441,6 +490,7 @@ public class MainEngine {
         lastTried = null;
         failCount = 0;
         lastCalculatedDirectionFailed = false;
+        current = null;
         firstStepEmergencyStopH = false;
         firstStepEmergencyStopV = false;
         moment = null;
@@ -449,6 +499,8 @@ public class MainEngine {
         ledToLastPortal = null;
         blindMode = false;
         localCoordinate = null;
+        rowContainsPortal = new boolean[mazeHeight];
+        yCoordinateDefined = true;
         Coordinate.setNewField();
 
         boolean completed = false;
