@@ -44,14 +44,16 @@ public class MainEngine {
     private static Direction moment; // initially set to null in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
     private static Coordinate[] portalTransitions; // set by setPortalTransitions() from MazeEditorController when the maze is created
-    private static Cell beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
+    private static Coordinate beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
     private static Direction ledToLastPortal; // initially set to null in solve(); Direction that led to the last visited portal
     private static boolean blindMode; // initially set to false in solve(); shows if Player now knows his exact coordinate
     private static Coordinate localCoordinate; // initially set to null in solve(); used instead of real coordinate during blindMode
     private static boolean[] rowContainsPortal;
     private static boolean yCoordinateDefined;
+    private static boolean xCoordinateDefined;
     private static int distanceToBottom;
     private static int distanceToRight;
+    private static ArrayList<Pair<Coordinate, Coordinate.CoordinateState>> localPath;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -149,20 +151,22 @@ public class MainEngine {
 
         current = blindMode ? localCoordinate : currentCell.getCoordinate(); // coordinate where the player was BEFORE moving!!!
 
-        if (mazeHeight == 1) {
+        /*if (mazeHeight == 1) {
             linearMaze(true); // TODO: check this later
         } else if (mazeWidth == 1) {
             linearMaze(false); // TODO: check this later
-        } else if (firstStep) { // first of all, Player tries to reach the bottom right corner to then continue scanning the maze in zigzags
+        } else*/ if (firstStep) { // first of all, Player tries to reach the bottom right corner to then continue scanning the maze in zigzags
             if ((current.getY() < mazeHeight - 1 || blindMode) && !firstStepEmergencyStopV) { // if not at the bottom and haven't met any obstacles on the way down yet
                 general = Direction.DOWN;
+            } else if (yCoordinateDefined && rowContainsPortal[currentCell.getCoordinate().getY()]) {
+                general = Direction.UP;
             } else if ((current.getX() < mazeWidth - 1 || blindMode) && !firstStepEmergencyStopH) { // if not at the right border and haven't met any obstacles on the way right yet
                 general = Direction.RIGHT;
             } else {
                 firstStep = false;
                 general = Direction.UP;
             }
-        } else if (lastCalculatedDirectionFailed) { // Player met a wall in a cell they tried to reach using the lastTried direction
+        } /*else if (lastCalculatedDirectionFailed) { // Player met a wall in a cell they tried to reach using the lastTried direction
             lastCalculatedDirectionFailed = false;
             Direction probable;
             switch (failCount) {
@@ -206,7 +210,7 @@ public class MainEngine {
         } else if (current.equals(new Coordinate(0, 0))) { // all the shifts lead left, so this coordinate should be handled manually
             lastTried = Direction.DOWN;
             return Direction.DOWN;
-        } else {
+        }*/ else {
             Direction turn;
             int[] critical = {-1, mazeWidth, mazeHeight, -1};
             for (int i = 0; i < 4; i++) {
@@ -218,45 +222,62 @@ public class MainEngine {
             }
         }
 
-        Direction toReturn = finalCheck();
-        lastTried = toReturn;
-        return toReturn;
+        //Direction toReturn = finalCheck();
+        lastTried = general;
+        return general;
     }
 
-    private static Direction finalCheck() {
-        Direction toReturn = general;
-        Coordinate wouldBe = current.add(toReturn);
-        int count = 0;
-        while (!wouldBe.fits() ||
-                coordinateStates[wouldBe.getY()][wouldBe.getX()]
-                        && !maze[wouldBe.getY()][wouldBe.getX()].getCellType().isReachable()) {
-            switch (count++) {
-                case 0: {
-                    toReturn = general.firstPerpendicular();
-                    break;
-                }
-                case 1: {
-                    toReturn = general.firstPerpendicular().opposite();
-                    break;
-                }
-                case 2: {
-                    toReturn = general.opposite();
-                }
-            }
-            wouldBe = current.add(toReturn);
-        }
-        return toReturn;
-    }
+//    private static Direction finalCheck() {
+//        Direction toReturn = general;
+//        Coordinate wouldBe = current.add(toReturn);
+//        int count = 0;
+//        while (!wouldBe.fits() ||
+//                coordinateStates[wouldBe.getY()][wouldBe.getX()]
+//                        && !maze[wouldBe.getY()][wouldBe.getX()].getCellType().isReachable()) {
+//            switch (count++) {
+//                case 0: {
+//                    toReturn = general.firstPerpendicular();
+//                    break;
+//                }
+//                case 1: {
+//                    toReturn = general.firstPerpendicular().opposite();
+//                    break;
+//                }
+//                case 2: {
+//                    toReturn = general.opposite();
+//                }
+//            }
+//            wouldBe = current.add(toReturn);
+//        }
+//        return toReturn;
+//    }
 
-    private static boolean successfulMoveScenario() {
-        int from = currentCell.getCoordinate().getRawNumber(); // where the move started; current was set to a proper value in calculateDirection() that happens before this
+    private static boolean successfulMoveScenario(Direction dir) {
+        int from = blindMode ? localCoordinate.getRawNumber() : currentCell.getCoordinate().getRawNumber(); // where the move started; current was set to a proper value in calculateDirection() that happens before this
         currentCell = moveResult.getResult();
         Coordinate tempCurrent = currentCell.getCoordinate();
-        int to = tempCurrent.getRawNumber(); // where the Player is now actually
+        if (blindMode) {
+            localCoordinate = localCoordinate.add(dir);
+            localPath.add(new Pair<>(localCoordinate, Coordinate.CoordinateState.KNOWN_REACHABLE));
+        }
+        int to = blindMode ? localCoordinate.getRawNumber() : tempCurrent.getRawNumber(); // where the Player is now actually
         steps.add(new MarkedCoordinate(tempCurrent, true));
         System.out.println("Visited " + tempCurrent.toString());
-        adjacencyMatrix[from][to] = true;
-        adjacencyMatrix[to][from] = true;
+        if (!blindMode) {
+            adjacencyMatrix[from][to] = true;
+            adjacencyMatrix[to][from] = true;
+        } else {
+            localAdjacencyMatrix[from][to] = true;
+            localAdjacencyMatrix[to][from] = true;
+        }
+
+        if (!yCoordinateDefined && !dir.getHorizontal()) {
+            distanceToBottom += dir.isPositive() ? -1 : 1;
+        }
+
+        if (!xCoordinateDefined && dir.getHorizontal()) {
+            distanceToRight += dir.isPositive() ? -1 : 1;
+        }
 
         switch (currentCell.getCellType()) {
             case TREASURE: {
@@ -316,7 +337,7 @@ public class MainEngine {
         switch (moveResult) {
             case SUCCESSFUL: { // does count as a step
                 failCount = 0;
-                return successfulMoveScenario();
+                return successfulMoveScenario(dir);
             }
 
             case UNREACHABLE_CELL: { // does count as a step
@@ -335,14 +356,14 @@ public class MainEngine {
                 }
                 if (failCount == 4) {
                     System.out.println("Blocked at " + current.toString());
-                    if (blindMode) {
-                        blindMode = false;
-                        System.out.println("Last passed portal turned out to lead to a blocked cell, returning to " + beforePortal.getCoordinate().toString());
-                        currentCell = beforePortal;
-                        beforePortal.getCoordinate().add(ledToLastPortal).setCoordinateState(Coordinate.CoordinateState.KNOWN_BAD_PORTAL, null);
-                    } else {
+                    //if (blindMode) {
+                    //    blindMode = false;
+                    //    System.out.println("Last passed portal turned out to lead to a blocked cell, returning to " + beforePortal.getCoordinate().toString());
+                    //    currentCell = beforePortal;
+                    //    beforePortal.getCoordinate().add(ledToLastPortal).setCoordinateState(Coordinate.CoordinateState.KNOWN_BAD_PORTAL, null);
+                    //} else {
                         return true;
-                    }
+                    //}
                 }
                 break;
             }
@@ -390,33 +411,120 @@ public class MainEngine {
             }
 
             case MAZE_BORDER: {
-                if (!firstStepEmergencyStopV) {
+                if (!dir.getHorizontal()) {
                     yCoordinateDefined = true;
                     firstStepEmergencyStopV = true;
-                    localCoordinate.add(dir).setCoordinateState(Coordinate.CoordinateState.KNOWN_MAZE_BORDER, dir);
+                } else {
+                    xCoordinateDefined = true;
+                    firstStepEmergencyStopH = true;
                 }
+                localCoordinate.add(dir).setCoordinateState(Coordinate.CoordinateState.KNOWN_MAZE_BORDER, dir);
+
+                if (yCoordinateDefined && xCoordinateDefined) {
+                    ArrayList<Pair<Coordinate, Coordinate>> links = new ArrayList<>();
+                    for (int i = 0; i < localAdjacencyMatrix.length; i++) {
+                        for (int j = 0; j < localAdjacencyMatrix.length; j++) {
+                            if (localAdjacencyMatrix[i][j]) {
+                                links.add(
+                                        new Pair<>(Coordinate.getByRawNumber(i).add(-distanceToRight, -distanceToBottom),
+                                                Coordinate.getByRawNumber(j).add(-distanceToRight, -distanceToBottom)));
+                            }
+                        }
+                    }
+                    blindMode = false;
+                    for (Pair<Coordinate, Coordinate> l: links) {
+                        int from = l.getA().getRawNumber();
+                        int to = l.getB().getRawNumber();
+                        adjacencyMatrix[from][to] = true;
+                    }
+                    for (Pair<Coordinate, Coordinate.CoordinateState> c: localPath) {
+                        Coordinate real = c.getA().add(-distanceToRight, -distanceToBottom);
+                        real.setCoordinateState(c.getB(), null);
+                    }
+                    int dirIndex = 0;
+                    boolean rf = false;
+                    while (dirIndex < 4) {
+                        Direction d = Direction.values()[dirIndex++];
+                        Coordinate.CoordinateState s = currentCell.getCoordinate().add(d).getCoordinateState();
+                        if (s == Coordinate.CoordinateState.UNKNOWN) {
+                            moment = d;
+                            break;
+                        }
+                        if (s == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                            moment = d;
+                            rf = true;
+                        }
+                        if (s == Coordinate.CoordinateState.KNOWN_PORTAL && !rf) {
+                            moment = d;
+                        }
+                    }
+                }
+
+                break;
             }
 
             case PORTAL: {
                 System.out.println("Travelled through portal from " + currentCell.getCoordinate().toString() + " to " + moveResult.getResult().getCoordinate().toString());
-                int from = currentCell.getCoordinate().getRawNumber(); // where the move started
-                int to = moveResult.getResult().getCoordinate().getRawNumber(); // after teleportation
-                adjacencyMatrix[from][to] = true;
 
                 if (yCoordinateDefined) {
                     rowContainsPortal[currentCell.getCoordinate().getY()] = true;
                 }
 
-                beforePortal = currentCell;
-                ledToLastPortal = dir;
+                //beforePortal = currentCell.getCoordinate();
+                //ledToLastPortal = dir;
 
                 currentCell.getCoordinate().add(dir).setCoordinateState(Coordinate.CoordinateState.KNOWN_PORTAL, null);
+                currentCell = moveResult.getResult();
 
                 clearLocals();
             }
         }
 
         return false;
+    }
+
+    private static class Pair<T1, T2> {
+        private final T1 a;
+        private final T2 b;
+
+        private Pair(T1 a, T2 b) {
+            this.a = a;
+            this.b = b;
+        }
+
+        T1 getA() {
+            return a;
+        }
+
+        T2 getB() {
+            return b;
+        }
+    }
+
+    private static void clearLocals() {
+
+        blindMode = true;
+
+        for (int i = 0; i < localCellAmount(); i++) {
+            for (int j = 0; j < localCellAmount(); j++) {
+                localAdjacencyMatrix[i][j] = false;
+            }
+        }
+
+        firstStep = true;
+        firstStepEmergencyStopH = false;
+        firstStepEmergencyStopV = false;
+
+        general = Direction.UP;
+        shift = false;
+
+        localCoordinate = new Coordinate(mazeWidth, mazeHeight);
+        Coordinate.clearLocalCoordinateStates();
+        distanceToBottom = 0;
+        distanceToRight = 0;
+        yCoordinateDefined = false;
+        xCoordinateDefined = false;
+        localPath.clear();
     }
 
     private static ArrayList<Integer> bfs(Coordinate startC, Coordinate destC) {
@@ -452,30 +560,6 @@ public class MainEngine {
         throw new NullPointerException("No path from " + startC.toString() + " to " + destC.toString());
     }
 
-    private static void clearLocals() {
-
-        blindMode = true;
-
-        for (int i = 0; i < localCellAmount(); i++) {
-            for (int j = 0; j < localCellAmount(); j++) {
-                localAdjacencyMatrix[i][j] = false;
-            }
-        }
-
-        firstStep = true;
-        firstStepEmergencyStopH = false;
-        firstStepEmergencyStopV = false;
-
-        general = Direction.UP;
-        shift = false;
-
-        localCoordinate = new Coordinate(mazeWidth, mazeHeight);
-        Coordinate.clearLocalCoordinateStates();
-        distanceToBottom = 0;
-        distanceToRight = 0;
-        yCoordinateDefined = false;
-    }
-
     public static void solve() {
         treasureCollected = false;
         exit = null;
@@ -501,7 +585,9 @@ public class MainEngine {
         localCoordinate = null;
         rowContainsPortal = new boolean[mazeHeight];
         yCoordinateDefined = true;
+        xCoordinateDefined = true;
         Coordinate.setNewField();
+        localPath = new ArrayList<>();
 
         boolean completed = false;
 

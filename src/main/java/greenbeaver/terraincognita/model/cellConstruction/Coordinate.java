@@ -54,6 +54,10 @@ public class Coordinate {
 
     public Coordinate add(Direction direction) { return add(direction.getToX(), direction.getToY()); }
 
+    public Coordinate subtract(Coordinate coordinate) {
+        return add(-coordinate.getX(), -coordinate.getY());
+    }
+
     public int getX() {
         return x;
     }
