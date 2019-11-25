@@ -9,9 +9,9 @@ class RadialCheck {
     private final Coordinate initial;
     private final ArrayList<ArrayList<Coordinate>> sides;
 
-    private DestinationWithDirection priority1;
-    private DestinationWithDirection priority2;
-    private DestinationWithDirection priority3;
+    private Pair<Coordinate, Direction> priority1;
+    private Pair<Coordinate, Direction> priority2;
+    private Pair<Coordinate, Direction> priority3;
 
     private enum ValueFound {
         PRIORITY_1,
@@ -31,15 +31,11 @@ class RadialCheck {
         priority3 = null;
     }
 
-    private boolean reachableAndKnown(Coordinate coordinate) {
-        return coordinate.fits() && MainEngine.coordinateReachable(coordinate) && !MainEngine.coordinateUnknown(coordinate);
-    }
-
     // checks if the probable Coordinate can be reached from the coordinate that's to the (direction) from it
-    private DestinationWithDirection calculateCorner(Direction direction, Coordinate probable) {
+    private Pair<Coordinate, Direction> calculateCorner(Direction direction, Coordinate probable) {
         Coordinate check = probable.add(direction);
-        if (reachableAndKnown(check)) {
-            return new DestinationWithDirection(check, direction.opposite());
+        if (check.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+            return new Pair<>(check, direction.opposite());
         }
 
         return null;
@@ -81,26 +77,26 @@ class RadialCheck {
                 }
 
                 if (startOfLine) { // if true, this corner is added to the actual current side and checked for being an answer
-                    if (MainEngine.coordinateUnknown(probable)) { // this block sets a low-priority answer if the currently examined corner is reachable from any side
-                        DestinationWithDirection frst = calculateCorner(first, probable);
+                    if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) { // this block sets a low-priority answer if the currently examined corner is reachable from any side
+                        Pair<Coordinate, Direction> frst = calculateCorner(first, probable);
                         if (frst != null) {
                             priority2 = frst;
                             return ValueFound.PRIORITY_2;
                         }
 
-                        DestinationWithDirection scnd = calculateCorner(second, probable);
+                        Pair<Coordinate, Direction> scnd = calculateCorner(second, probable);
                         if (scnd != null) {
                             priority2 = scnd;
                             return ValueFound.PRIORITY_2;
                         }
 
-                        DestinationWithDirection thrd = calculateCorner(first.opposite(), probable);
+                        Pair<Coordinate, Direction> thrd = calculateCorner(first.opposite(), probable);
                         if (thrd != null) {
                             priority3 = thrd;
                             return ValueFound.PRIORITY_3;
                         }
 
-                        DestinationWithDirection frth = calculateCorner(second.opposite(), probable);
+                        Pair<Coordinate, Direction> frth = calculateCorner(second.opposite(), probable);
                         if (frth != null) {
                             priority3 = frth;
                             return ValueFound.PRIORITY_3;
@@ -123,8 +119,8 @@ class RadialCheck {
             Direction direction = Direction.values()[i];
             Coordinate probable = initial.add(direction);
             if (probable.fits()) {
-                if (MainEngine.coordinateUnknown(probable)) {
-                    priority1 = new DestinationWithDirection(initial, direction);
+                if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) {
+                    priority1 = new Pair<>(initial, direction);
                 }
 
                 sides.get(i).add(probable);
@@ -146,20 +142,20 @@ class RadialCheck {
                 Coordinate probable = from.add(direction);
 
                 if (probable.fits()) {
-                    if (MainEngine.coordinateUnknown(probable)) {
-                        if (reachableAndKnown(from)) {
-                            priority1 = new DestinationWithDirection(from, direction);
+                    if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) {
+                        if (from.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                            priority1 = new Pair<>(from, direction);
                         }
 
                         Direction p = direction.firstPerpendicular(); // probable coordinate might not be reachable going straight radially from the center, but if it has a "bridge" neighbour in the same ring, it would still be better than corner
-                        if (reachableAndKnown(probable.add(p))) {
-                            priority2 = new DestinationWithDirection(probable.add(p), p.opposite());
-                        } else if (reachableAndKnown(probable.add(p.opposite()))) {
-                            priority2 = new DestinationWithDirection(probable.add(p.opposite()), p);
+                        if (probable.add(p).getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                            priority2 = new Pair<>(probable.add(p), p.opposite());
+                        } else if (probable.add(p.opposite()).getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                            priority2 = new Pair<>(probable.add(p.opposite()), p);
                         }
 
-                        if (reachableAndKnown(probable.add(direction))) {
-                            priority3 = new DestinationWithDirection(probable.add(direction), direction.opposite());
+                        if (probable.add(direction).getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                            priority3 = new Pair<>(probable.add(direction), direction.opposite());
                         }
                     }
 
@@ -171,7 +167,7 @@ class RadialCheck {
         addCorners(level, false);
     }
 
-    DestinationWithDirection find() {
+    Pair<Coordinate, Direction> find() {
         ValueFound firstTry = addCorners(1, true);
 
         ValueFound secondTry = initialFill();
@@ -187,8 +183,11 @@ class RadialCheck {
                 return priority3;
         }
 
-        int distanceToBottom = MainEngine.getMazeHeight() - initial.getY();
-        int distanceToRight = MainEngine.getMazeWidth() - initial.getX();
+        int h = MainEngine.isBlindMode() ? MainEngine.getMazeHeight() * 2 + 1 : MainEngine.getMazeHeight();
+        int w = MainEngine.isBlindMode() ? MainEngine.getMazeWidth() * 2 + 1 : MainEngine.getMazeWidth();
+
+        int distanceToBottom = h - initial.getY();
+        int distanceToRight = w - initial.getX();
 
         int maxHDistance = Math.max(distanceToRight, initial.getX());
         int maxVDistance = Math.max(distanceToBottom, initial.getY());

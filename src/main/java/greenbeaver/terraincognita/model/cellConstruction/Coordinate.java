@@ -25,6 +25,17 @@ public class Coordinate {
         }
     }
 
+    public static void setCoordinateStates(CoordinateState[][] newCoordinateStates) {
+        CoordinateState[][] settingNow = MainEngine.isBlindMode() ? localCoordinateStates : coordinateStates;
+        for (int i = 0; i < settingNow.length; i++) {
+            System.arraycopy(newCoordinateStates[i], 0, settingNow[i], 0, settingNow[0].length);
+        }
+    }
+
+    public static CoordinateState[][] getCoordinateStates() {
+        return MainEngine.isBlindMode() ? localCoordinateStates : coordinateStates;
+    }
+
     public static void setNewField() {
         localCoordinateStates =
                 new CoordinateState[2 * MainEngine.getMazeHeight() + 1][2 * MainEngine.getMazeWidth() + 1];
@@ -48,6 +59,10 @@ public class Coordinate {
         this.y = y;
     }
 
+    public Coordinate copy() {
+        return new Coordinate(x, y);
+    }
+
     public Coordinate add(int toX, int toY) {
         return new Coordinate(x + toX, y + toY);
     }
@@ -55,7 +70,7 @@ public class Coordinate {
     public Coordinate add(Direction direction) { return add(direction.getToX(), direction.getToY()); }
 
     public Coordinate subtract(Coordinate coordinate) {
-        return add(-coordinate.getX(), -coordinate.getY());
+        return new Coordinate(x - coordinate.x, y - coordinate.y);
     }
 
     public int getX() {

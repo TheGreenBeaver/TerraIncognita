@@ -11,13 +11,79 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class MainEngine {
 
-    private static class MarkedCoordinate {
-        Coordinate coordinate;
-        boolean couldActuallyReach;
+    private static class LocalsTree {
+        private static class Level {
+            private Level child;
+            private Level parent;
+            private boolean[][] previousAdj;
+            private Coordinate.CoordinateState[][] previousCoordinateStates;
+            private Coordinate coordinateToReturn;
+            private Coordinate previousCurrentCell;
+            private Direction ledToBadPortal;
+            private int previousFailCount;
+            private Coordinate previousEnteringPortal;
+            private boolean normalTransitionWasTried;
+        }
 
-        private MarkedCoordinate(Coordinate coordinate, boolean couldActuallyReach) {
-            this.coordinate = coordinate;
-            this.couldActuallyReach = couldActuallyReach;
+        Level root = null;
+
+        void add(Direction direction) {
+            Level level = new Level();
+            level.previousCurrentCell = currentCell.getCoordinate().copy();
+            level.ledToBadPortal = direction;
+            level.previousFailCount = failCount;
+            Coordinate.CoordinateState[][] coordinateStates = Coordinate.getCoordinateStates();
+            if (root == null) {
+                level.coordinateToReturn = currentCell.getCoordinate().copy();
+
+                level.previousAdj = new boolean[cellAmount()][cellAmount()];
+                for (int i = 0; i < cellAmount(); i++) {
+                    System.arraycopy(adjacencyMatrix[i], 0, level.previousAdj[i], 0, cellAmount());
+                }
+
+                level.previousCoordinateStates = new Coordinate.CoordinateState[mazeHeight][mazeWidth];
+                for (int i = 0; i < mazeHeight; i++) {
+                    System.arraycopy(coordinateStates[i], 0, level.previousCoordinateStates[i], 0, mazeWidth);
+                }
+
+                root = level;
+            } else {
+                Level curr = root;
+                while (curr.child != null) {
+                    curr = curr.child;
+                }
+
+                level.coordinateToReturn = localCoordinate.copy();
+                level.previousEnteringPortal = lastEnteringPortal.copy();
+                level.normalTransitionWasTried = normalTransitionTried;
+
+                level.previousAdj = new boolean[localCellAmount()][localCellAmount()];
+                for (int i = 0; i < localCellAmount(); i++) {
+                    System.arraycopy(localAdjacencyMatrix[i], 0, level.previousAdj[i], 0, localCellAmount());
+                }
+
+                level.previousCoordinateStates = new Coordinate.CoordinateState[mazeHeight * 2 + 1][mazeWidth * 2 + 1];
+                for (int i = 0; i < mazeHeight * 2 + 1; i++) {
+                    System.arraycopy(coordinateStates[i], 0, level.previousCoordinateStates[i], 0, mazeWidth * 2 + 1);
+                }
+
+                curr.child = level;
+                level.parent = curr;
+            }
+        }
+
+        Level previousState() {
+            assert root != null;
+            Level curr = root;
+            while (curr.child != null) {
+                curr = curr.child;
+            }
+            if (curr.parent != null) {
+                curr.parent.child = null;
+            } else {
+                root = null;
+            }
+            return curr;
         }
     }
 
@@ -26,14 +92,14 @@ public class MainEngine {
     private static boolean treasureCollected; // initially set to false in solve()
     private static Coordinate entrance; // set by setEntrance() from MazeEditorController when one of the cells is made an entrance
     private static Coordinate exit; // initially set to null in solve()
-    private static Cell currentCell; // initially set to entrance in solve()
+    private static Cell currentCell; // initially set to entrance in solve(); tracks the real position of the Player; the Cell where the Player was at the start of makeMove()
     private static Cell[][] maze; // set by setMaze() from MazeEditorController when the maze is created
     private static boolean[][] adjacencyMatrix; // initially set to a matrix filled by false in solve()
     private static boolean[][] localAdjacencyMatrix;
     private static boolean firstStep; // initially set to true in solve(); shows if the Player is now trying to reach the bottom right corner of the maze to then start scanning it in zigzags
     private static boolean shift; // initially set to false in solve(); shows if the Player should now change their X coordinate in case they are at the bottom or top border
     private static Direction general; // initially set to Direction.UP() in solve(); shows what overall direction the Player is moving now, not paying attention to firstStep or shift
-    private static ArrayList<MarkedCoordinate> steps; // initially set to an ArrayList with only entrance in it in solve(); stores all the cells that the Player visited or tried to visit
+    private static ArrayList<Pair<Coordinate, Boolean>> steps; // initially set to an ArrayList with only entrance in it in solve(); stores all the cells that the Player visited or tried to visit
     private static MoveResult moveResult; // initially set to null in solve()
     private static Direction lastTried; // initially set to null in solve()
     private static int failCount; // initially set to 0 in solve; shows how much times in a row the Player failed to move in a calculated direction
@@ -44,8 +110,6 @@ public class MainEngine {
     private static Direction moment; // initially set to null in solve(); shows the direction that the Player should follow to reach the nearest unknown cell after bfs
     private static int bordersHit; // initially set to 0 in solve(); serves as a marker of completion ability for linear mazes
     private static Coordinate[] portalTransitions; // set by setPortalTransitions() from MazeEditorController when the maze is created
-    private static Coordinate beforePortal; // initially set to null in solve(); Coordinate where the Player was before entering a portal, saved in case portal would be blocked and algorithm would need to return
-    private static Direction ledToLastPortal; // initially set to null in solve(); Direction that led to the last visited portal
     private static boolean blindMode; // initially set to false in solve(); shows if Player now knows his exact coordinate
     private static Coordinate localCoordinate; // initially set to null in solve(); used instead of real coordinate during blindMode
     private static boolean[] rowContainsPortal;
@@ -54,6 +118,10 @@ public class MainEngine {
     private static int distanceToBottom;
     private static int distanceToRight;
     private static ArrayList<Pair<Coordinate, Coordinate.CoordinateState>> localPath;
+    private static ArrayList<Pair<Coordinate, Coordinate>> localAdjacencyLinks;
+    private static LocalsTree localsTree;
+    private static Coordinate lastEnteringPortal;
+    private static boolean normalTransitionTried;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -92,7 +160,7 @@ public class MainEngine {
         MainEngine.entrance = entrance;
     }
 
-    public static ArrayList<MarkedCoordinate> getSteps() {
+    public static ArrayList<Pair<Coordinate, Boolean>> getSteps() {
         return steps;
     }
 
@@ -253,6 +321,7 @@ public class MainEngine {
 //    }
 
     private static boolean successfulMoveScenario(Direction dir) {
+        failCount = 0;
         int from = blindMode ? localCoordinate.getRawNumber() : currentCell.getCoordinate().getRawNumber(); // where the move started; current was set to a proper value in calculateDirection() that happens before this
         currentCell = moveResult.getResult();
         Coordinate tempCurrent = currentCell.getCoordinate();
@@ -261,7 +330,7 @@ public class MainEngine {
             localPath.add(new Pair<>(localCoordinate, Coordinate.CoordinateState.KNOWN_REACHABLE));
         }
         int to = blindMode ? localCoordinate.getRawNumber() : tempCurrent.getRawNumber(); // where the Player is now actually
-        steps.add(new MarkedCoordinate(tempCurrent, true));
+        steps.add(new Pair<>(tempCurrent, true));
         System.out.println("Visited " + tempCurrent.toString());
         if (!blindMode) {
             adjacencyMatrix[from][to] = true;
@@ -289,7 +358,7 @@ public class MainEngine {
                     ArrayList<Integer> path = bfs(currentCell.getCoordinate(), exit); // if the Player has already found an exit and than reached the treasure, then there's definitely a path bfs can find
                     for (Integer raw : path) {
                         Coordinate c = Coordinate.getByRawNumber(raw);
-                        steps.add(new MarkedCoordinate(c, true));
+                        steps.add(new Pair<>(c, true));
                         System.out.println("Visited " + c.toString());
                     }
                     return true;
@@ -318,93 +387,130 @@ public class MainEngine {
     }
 
     private static boolean makeMove() {
-        Direction dir = (moment == null) ? calculateDirection() : moment; // if we've just used bfs and now just need to reach the actual nearest unknown cell, we don't need to calculate direction
+        Direction dir = moment == null ? calculateDirection() : moment; // if we've just used bfs and now just need to reach the actual nearest unknown cell, we don't need to calculate direction
 
-        if (bordersHit == 2) {
-            if (!treasureCollected) {
-                System.out.println("Treasure couldn't be reached");
-                return true;
-            }
-            if (exit == null) {
-                System.out.println("Exit couldn't be reached");
-                return true;
-            }
-        }
+//        if (bordersHit == 2) {
+//            if (!treasureCollected) {
+//                System.out.println("Treasure couldn't be reached");
+//                return true;
+//            }
+//            if (exit == null) {
+//                System.out.println("Exit couldn't be reached");
+//                return true;
+//            }
+//        }
 
         moveResult = currentCell.move(dir);
         moment = null;
 
+        Coordinate newLocalCoordinate = localCoordinate.add(dir);
+        Coordinate oldRealCoordinate = currentCell.getCoordinate();
+        Cell newRealCell = moveResult.getResult();
+        Coordinate newRealCoordinate = newRealCell.getCoordinate();
+
         switch (moveResult) {
             case SUCCESSFUL: { // does count as a step
-                failCount = 0;
                 return successfulMoveScenario(dir);
             }
 
             case UNREACHABLE_CELL: { // does count as a step
-                Coordinate resC = blindMode ? localCoordinate.add(dir) : moveResult.getResult().getCoordinate();
-                if (blindMode) {
-                    localCoordinate = resC;
-                }
-                resC.setCoordinateState(Coordinate.CoordinateState.KNOWN_UNREACHABLE, null);
-                steps.add(new MarkedCoordinate(moveResult.getResult().getCoordinate(), false));
-                System.out.println("Tried to reach " + moveResult.getResult().getCoordinate().toString() + ", but met an obstacle");
+                Coordinate forCalculation = blindMode ? newLocalCoordinate : newRealCoordinate;
+                forCalculation.setCoordinateState(Coordinate.CoordinateState.KNOWN_UNREACHABLE, null);
+                steps.add(new Pair<>(newRealCoordinate, false));
+                System.out.println("Tried to reach " + newRealCoordinate.toString() + ", but met an obstacle");
                 if (!firstStep) {
                     lastCalculatedDirectionFailed = true;
                     failCount++;
                 } else {
                     emergency();
                 }
-                if (failCount == 4) {
-                    System.out.println("Blocked at " + current.toString());
-                    //if (blindMode) {
-                    //    blindMode = false;
-                    //    System.out.println("Last passed portal turned out to lead to a blocked cell, returning to " + beforePortal.getCoordinate().toString());
-                    //    currentCell = beforePortal;
-                    //    beforePortal.getCoordinate().add(ledToLastPortal).setCoordinateState(Coordinate.CoordinateState.KNOWN_BAD_PORTAL, null);
-                    //} else {
+                if (failCount >= 4) {
+                    System.out.println("Blocked at " + oldRealCoordinate.toString());
+                    if (blindMode) {
+                        backspace();
+                    } else {
                         return true;
-                    //}
+                    }
                 }
                 break;
             }
 
             case ALREADY_VISITED_CELL: { // does not count as a step (by now, while the portals aren't implemented)
+
+                int from = blindMode ? localCoordinate.getRawNumber() : oldRealCoordinate.getRawNumber();
+                int to = blindMode ? newLocalCoordinate.getRawNumber() : newRealCoordinate.getRawNumber();
+
                 if (!blindMode) {
-                    int from = currentCell.getCoordinate().getRawNumber(); // where the move started
-                    int to = moveResult.getResult().getCoordinate().getRawNumber();
                     adjacencyMatrix[from][to] = true;
                     adjacencyMatrix[to][from] = true;
                 } else {
-                    int from = localCoordinate.getRawNumber(); // where the move started
-                    int to = moveResult.getResult().getCoordinate().getRawNumber();
-                    adjacencyMatrix[from][to] = true;
-                    adjacencyMatrix[to][from] = true;
+                    localAdjacencyMatrix[from][to] = true;
+                    localAdjacencyMatrix[to][from] = true;
+                    localAdjacencyLinks.add(new Pair<>(localCoordinate.copy(), newLocalCoordinate));
                 }
                 failCount = 0;
                 RadialCheck radialCheck = new RadialCheck(currentCell.getCoordinate()); // searches from a coordinate where the Player was before trying to make move
-                DestinationWithDirection d = radialCheck.find();
+                Pair<Coordinate, Direction> d = radialCheck.find();
+                Coordinate relation = oldRealCoordinate.subtract(localCoordinate);
                 if (d == null) {
-                    if (!treasureCollected) {
-                        System.out.println("Treasure couldn't be reached");
+                    if (blindMode) {
+                        if (!normalTransitionTried) {
+                            ArrayList<Integer> pathToLastEnteringPortal = bfs(localCoordinate, lastEnteringPortal);
+                            int s = pathToLastEnteringPortal.size();
+                            Coordinate preLast = null;
+                            for (int i = 0; i < s; i++) {
+                                Coordinate localByRaw = Coordinate.getByRawNumber(pathToLastEnteringPortal.get(i));
+                                Coordinate realByLocal = localByRaw.add(relation.getX(), relation.getY());
+                                if (i == s - 2) {
+                                    preLast = realByLocal;
+                                }
+                                if (i < s - 1) {
+                                    steps.add(new Pair<>(realByLocal, true));
+                                } else {
+                                    assert preLast != null;
+                                    Coordinate lastMove = realByLocal.subtract(preLast);
+                                    moment = Direction.getByConstructor(lastMove.getX(), lastMove.getY());
+                                    break;
+                                }
+                            }
+                            normalTransitionTried = true;
+                        } else {
+                            backspace();
+                        }
+                    } else {
+                        if (!treasureCollected) {
+                            System.out.println("Treasure couldn't be reached");
+                        }
+                        if (exit == null) {
+                            System.out.println("Exit couldn't be reached");
+                        }
+                        return true;
                     }
-                    if (exit == null) {
-                        System.out.println("Exit couldn't be reached");
+                } else {
+                    Coordinate nowGoingTo = d.getA();
+                    moment = d.getB();
+
+                    lastTried = moment;
+
+                    Coordinate forCalculation = blindMode ? localCoordinate : oldRealCoordinate;
+                    if (!nowGoingTo.equals(forCalculation)) {
+
+                        ArrayList<Integer> path = bfs(forCalculation, nowGoingTo);
+                        if (blindMode) {
+                            for (Integer num : path) { // FIXME: 25.11.2019 add changes to distanceToBottom and distanceToRight
+                                Coordinate localByRaw = Coordinate.getByRawNumber(num);
+                                Coordinate realByLocal = localByRaw.add(relation.getX(), relation.getY());
+                                System.out.println("Visited " + realByLocal.toString());
+                                steps.add(new Pair<>(realByLocal, true));
+                            }
+                        } else {
+                            for (Integer num: path) {
+                                System.out.println("Visited " + Coordinate.getByRawNumber(num));
+                                steps.add(new Pair<>(Coordinate.getByRawNumber(num), true));
+                            }
+                        }
+                        currentCell = maze[nowGoingTo.getY()][nowGoingTo.getX()];
                     }
-                    return true;
-                }
-                Coordinate nowGoingTo = d.getGoingTo();
-                moment = d.getToReachActual();
-
-                lastTried = moment;
-
-                if (!nowGoingTo.equals(currentCell.getCoordinate())) {
-
-                    ArrayList<Integer> path = bfs(current, nowGoingTo);
-                    for (Integer num : path) {
-                        System.out.println("Visited " + Coordinate.getByRawNumber(num).toString());
-                        steps.add(new MarkedCoordinate(Coordinate.getByRawNumber(num), true));
-                    }
-                    currentCell = maze[nowGoingTo.getY()][nowGoingTo.getX()];
                 }
 
                 break;
@@ -464,18 +570,16 @@ public class MainEngine {
             }
 
             case PORTAL: {
-                System.out.println("Travelled through portal from " + currentCell.getCoordinate().toString() + " to " + moveResult.getResult().getCoordinate().toString());
+                System.out.println("Travelled through portal from " + oldRealCoordinate.toString() + " to " + newRealCoordinate.toString());
 
                 if (yCoordinateDefined) {
                     rowContainsPortal[currentCell.getCoordinate().getY()] = true;
                 }
 
-                //beforePortal = currentCell.getCoordinate();
-                //ledToLastPortal = dir;
-
                 currentCell.getCoordinate().add(dir).setCoordinateState(Coordinate.CoordinateState.KNOWN_PORTAL, null);
-                currentCell = moveResult.getResult();
+                localsTree.add(dir);
 
+                currentCell = newRealCell;
                 clearLocals();
             }
         }
@@ -483,22 +587,29 @@ public class MainEngine {
         return false;
     }
 
-    private static class Pair<T1, T2> {
-        private final T1 a;
-        private final T2 b;
-
-        private Pair(T1 a, T2 b) {
-            this.a = a;
-            this.b = b;
+    private static void backspace() {
+        LocalsTree.Level previous = localsTree.previousState();
+        Coordinate beforePortal = previous.coordinateToReturn.copy();
+        Coordinate pCurrent = previous.previousCurrentCell.copy();
+        currentCell = maze[pCurrent.getY()][pCurrent.getX()];
+        failCount = previous.previousFailCount + 1;
+        lastCalculatedDirectionFailed = true;
+        lastTried = previous.ledToBadPortal;
+        if (previous.parent == null) {
+            blindMode = false;
+            for (int i = 0; i < adjacencyMatrix.length; i++) {
+                System.arraycopy(previous.previousAdj[i], 0, adjacencyMatrix[i], 0, adjacencyMatrix.length);
+            }
+        } else {
+            localCoordinate = beforePortal.copy();
+            normalTransitionTried = previous.normalTransitionWasTried;
+            lastEnteringPortal = previous.previousEnteringPortal.copy();
+            for (int i = 0; i < localAdjacencyMatrix.length; i++) {
+                System.arraycopy(previous.previousAdj[i], 0, localAdjacencyMatrix[i], 0, localAdjacencyMatrix.length);
+            }
+            Coordinate.setCoordinateStates(previous.previousCoordinateStates);
         }
-
-        T1 getA() {
-            return a;
-        }
-
-        T2 getB() {
-            return b;
-        }
+        beforePortal.setCoordinateState(Coordinate.CoordinateState.KNOWN_BAD_PORTAL, null);
     }
 
     private static void clearLocals() {
@@ -525,27 +636,30 @@ public class MainEngine {
         yCoordinateDefined = false;
         xCoordinateDefined = false;
         localPath.clear();
+        localAdjacencyLinks.clear();
     }
 
     private static ArrayList<Integer> bfs(Coordinate startC, Coordinate destC) {
         int start = startC.getRawNumber();
         int dest = destC.getRawNumber();
 
-        ArrayList<ArrayList<Integer>> paths = new ArrayList<>(cellAmount());
-        for (int i = 0; i < cellAmount(); i++) {
+        int actualSize = blindMode ? localCellAmount() : cellAmount();
+        boolean[][] matrixToUse = blindMode ? localAdjacencyMatrix : adjacencyMatrix;
+        ArrayList<ArrayList<Integer>> paths = new ArrayList<>(actualSize);
+        for (int i = 0; i < actualSize; i++) {
             paths.add(new ArrayList<>());
         }
 
-        boolean[] visited = new boolean[cellAmount()];
+        boolean[] visited = new boolean[actualSize];
         visited[start] = true;
 
-        ArrayBlockingQueue<Integer> queue = new ArrayBlockingQueue<>(cellAmount());
+        ArrayBlockingQueue<Integer> queue = new ArrayBlockingQueue<>(actualSize);
         queue.add(start);
 
         while (!queue.isEmpty()) {
             int a = queue.poll();
-            for (int i = 0; i < cellAmount(); i++) {
-                if (adjacencyMatrix[a][i] && !visited[i]) {
+            for (int i = 0; i < actualSize; i++) {
+                if (matrixToUse[a][i] && !visited[i]) {
                     paths.set(i, new ArrayList<>(paths.get(a)));
                     paths.get(i).add(i);
                     if (i == dest) {
@@ -569,7 +683,7 @@ public class MainEngine {
         firstStep = true;
         shift = false;
         general = Direction.UP;
-        steps = new ArrayList<>(Collections.singletonList(new MarkedCoordinate(entrance, true)));
+        steps = new ArrayList<>(Collections.singletonList(new Pair<>(entrance, true)));
         moveResult = null;
         lastTried = null;
         failCount = 0;
@@ -579,8 +693,6 @@ public class MainEngine {
         firstStepEmergencyStopV = false;
         moment = null;
         bordersHit = 0;
-        beforePortal = null;
-        ledToLastPortal = null;
         blindMode = false;
         localCoordinate = null;
         rowContainsPortal = new boolean[mazeHeight];
