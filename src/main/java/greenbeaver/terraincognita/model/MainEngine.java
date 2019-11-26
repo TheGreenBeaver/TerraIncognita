@@ -7,88 +7,70 @@ import greenbeaver.terraincognita.model.cellConstruction.MoveResult;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class MainEngine {
 
     private static class LocalsTree {
         private static class Level {
-            private Level child;
-            private Level parent;
-            private boolean[][] previousAdj;
-            private Coordinate.CoordinateState[][] previousCoordinateStates;
-            private Coordinate coordinateToReturn;
-            private Coordinate previousCurrentCellCoordinate;
-            private Direction ledToBadPortal;
-            private int previousFailCount;
-            private Coordinate previousEnteringPortal;
-            private boolean normalTransitionWasTried;
-            private ArrayList<Pair<Coordinate, Coordinate>> previousAdjacencyLinks;
-            private ArrayList<Pair<Coordinate, Coordinate.CoordinateState>> previousPath;
+            private Level parent; // previous state, root represents initial (non-blind) state
+            private Coordinate portalFromParent; // Coordinate (portal) where the Player was placed after travelling through portal from parent
 
+            private HashMap<Coordinate, Level> children; // Next states with Coordinates of portals leading to them
+
+            private boolean[][] adj; // Adjacency matrix at this stage
+            private Coordinate.CoordinateState[][] cStates; // Coordinate states at this stage
+
+            // Used when returning from a blocked position
+            private Direction last; // Direction that led to the portal that put the Player into block
+            private int failC; // failCount at this stage and moment
+
+            private Level(Level parent, Coordinate portalFromParent) {
+                this.parent = parent;
+                this.portalFromParent = portalFromParent;
+
+                int adjSize = parent != null ? localCellAmount() : cellAmount();
+                adj = new boolean[adjSize][adjSize];
+
+                int cStatesH = parent != null ? mazeHeight * 2 + 1 : mazeHeight;
+                int cStatesW = parent != null ? mazeWidth * 2 + 1 : mazeWidth;
+                cStates = new Coordinate.CoordinateState[cStatesH][cStatesW];
+
+                children = new HashMap<>();
+            }
         }
 
-        Level root = null;
+        private Level root;
+
+        private LocalsTree() {
+            root = new Level(null, null);
+        }
 
         void add(Direction direction) {
-            Level level = new Level();
-            level.previousCurrentCellCoordinate = currentCell.getCoordinate().copy();
-            level.ledToBadPortal = direction;
-            level.previousFailCount = failCount;
-            Coordinate.CoordinateState[][] coordinateStates = Coordinate.getCoordinateStates();
-            if (root == null) {
-                level.coordinateToReturn = currentCell.getCoordinate().copy();
+            Coordinate p = currentLevel.parent == null ? oldRealCoordinate : localCoordinate;
+            p = p.add(direction); // key for a new child
 
-                level.previousAdj = new boolean[cellAmount()][cellAmount()];
-                for (int i = 0; i < cellAmount(); i++) {
-                    System.arraycopy(adjacencyMatrix[i], 0, level.previousAdj[i], 0, cellAmount());
-                }
-
-                level.previousCoordinateStates = new Coordinate.CoordinateState[mazeHeight][mazeWidth];
-                for (int i = 0; i < mazeHeight; i++) {
-                    System.arraycopy(coordinateStates[i], 0, level.previousCoordinateStates[i], 0, mazeWidth);
-                }
-
-                root = level;
-            } else {
-                Level curr = root;
-                while (curr.child != null) {
-                    curr = curr.child;
-                }
-
-                level.coordinateToReturn = localCoordinate.copy();
-                level.previousEnteringPortal = lastEnteringPortal.copy();
-                level.normalTransitionWasTried = normalTransitionTried;
-                level.previousAdjacencyLinks = new ArrayList<>(localAdjacencyLinks);
-                level.previousPath = new ArrayList<>(localPath);
-
-                level.previousAdj = new boolean[localCellAmount()][localCellAmount()];
-                for (int i = 0; i < localCellAmount(); i++) {
-                    System.arraycopy(localAdjacencyMatrix[i], 0, level.previousAdj[i], 0, localCellAmount());
-                }
-
-                level.previousCoordinateStates = new Coordinate.CoordinateState[mazeHeight * 2 + 1][mazeWidth * 2 + 1];
-                for (int i = 0; i < mazeHeight * 2 + 1; i++) {
-                    System.arraycopy(coordinateStates[i], 0, level.previousCoordinateStates[i], 0, mazeWidth * 2 + 1);
-                }
-
-                curr.child = level;
-                level.parent = curr;
+            Coordinate.CoordinateState[][] c = Coordinate.getCoordinateStates();
+            for (int i = 0; i < c.length/*=height*/; i++) {
+                System.arraycopy(c[i], 0, currentLevel.cStates[i], 0, c[0].length);
             }
+
+            boolean[][] adjToWork = currentLevel.parent == null ? adjacencyMatrix : localAdjacencyMatrix;
+            for (int i = 0; i < adjToWork.length; i++) {
+                System.arraycopy(adjToWork[i], 0, currentLevel.adj[i], 0, adjToWork[0].length);
+            }
+
+            currentLevel.last = direction;
+            currentLevel.failC = failCount;
+
+            Level level = new Level(currentLevel, newLocalCoordinate);
+
+            currentLevel.children.put(p, level);
         }
 
         Level previousState() {
-            assert root != null;
-            Level curr = root;
-            while (curr.child != null) {
-                curr = curr.child;
-            }
-            if (curr.parent != null) {
-                curr.parent.child = null;
-            } else {
-                root = null;
-            }
-            return curr;
+            return currentLevel.parent;
         }
     }
 
@@ -133,6 +115,7 @@ public class MainEngine {
     private static Coordinate newRealCoordinate;
     private static boolean[][] treasureCabin;
     private static boolean[][] exitCabin;
+    private static LocalsTree.Level currentLevel;
 
 
     // Getters and setters
