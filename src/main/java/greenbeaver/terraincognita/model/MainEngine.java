@@ -24,7 +24,16 @@ public class MainEngine {
 
             // Used when returning from a blocked position
             private Direction last; // Direction that led to the portal that put the Player into block
-            private int failC; // failCount at this stage and moment
+            private int lFailCount; // failCount at this stage and moment
+            private boolean lFirstStep;
+            private boolean lEmergencyStopV;
+            private boolean lEmergencyStopH;
+            private int lVTravelLength;
+            private int lHTravelLength;
+            private Direction lGeneral;
+            private boolean lShift;
+            private boolean lYCoordinateDefined;
+            private boolean lXCoordinateDefined;
 
             private Level(Level parent, Coordinate portalFromParent) {
                 this.parent = parent;
@@ -38,6 +47,10 @@ public class MainEngine {
                 cStates = new Coordinate.CoordinateState[cStatesH][cStatesW];
 
                 children = new HashMap<>();
+            }
+
+            private boolean triedEscapingThroughEntrance() {
+                return children.containsKey(portalFromParent);
             }
         }
 
@@ -62,15 +75,21 @@ public class MainEngine {
             }
 
             currentLevel.last = direction;
-            currentLevel.failC = failCount;
+            currentLevel.lFailCount = failCount;
 
             Level level = new Level(currentLevel, newLocalCoordinate);
 
             currentLevel.children.put(p, level);
         }
 
-        Level previousState() {
-            return currentLevel.parent;
+        // Used only of blocked
+        void previousState(boolean withDelete) {
+            currentLevel = currentLevel.parent;
+            failCount = currentLevel.lFailCount;
+            lastTried = currentLevel.last;
+            lastCalculatedDirectionFailed = true;
+
+            Coordinate.setCoordinateStates(currentLevel.cStates);
         }
     }
 
