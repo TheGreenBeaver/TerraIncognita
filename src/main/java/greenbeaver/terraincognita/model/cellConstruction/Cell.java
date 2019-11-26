@@ -65,7 +65,8 @@ public class Cell extends ImageView {
                 return MoveResult.UNREACHABLE_CELL;
             }
 
-            return newCoordinate.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE
+            Coordinate temp = MainEngine.isBlindMode() ? MainEngine.getLocalCoordinate().add(direction) : newCoordinate;
+            return temp.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE
                     ? MoveResult.ALREADY_VISITED_CELL
                     : MoveResult.SUCCESSFUL;
         }

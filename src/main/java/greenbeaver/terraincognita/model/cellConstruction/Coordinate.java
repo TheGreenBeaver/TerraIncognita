@@ -11,6 +11,8 @@ public class Coordinate {
         KNOWN_REACHABLE,
         KNOWN_BAD_PORTAL,
         KNOWN_PORTAL,
+        KNOWN_PORTAL_TO_EXIT,
+        KNOWN_PORTAL_TO_TREASURE,
         KNOWN_MAZE_BORDER
     }
 
