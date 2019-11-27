@@ -12,8 +12,9 @@ public class Coordinate {
         KNOWN_BAD_PORTAL,
         KNOWN_PORTAL,
         KNOWN_PORTAL_TO_EXIT,
-        KNOWN_PORTAL_TO_TREASURE,
-        KNOWN_MAZE_BORDER
+        KNOWN_PORTAL_TO_UNBLIND,
+        KNOWN_MAZE_BORDER,
+        TEMPORARY_UNKNOWN
     }
 
     private static CoordinateState[][] coordinateStates;
@@ -85,6 +86,10 @@ public class Coordinate {
 
     public boolean fits() {
         return x >= 0 && y >= 0 && x < MainEngine.getMazeWidth() && y < MainEngine.getMazeHeight();
+    }
+
+    public boolean fitsLocally() {
+        return MainEngine.isBlindMode() && x >= 0 && y >= 0 && x < MainEngine.getMazeWidth() * 2 + 1 && y < MainEngine.getMazeHeight() * 2 + 1;
     }
 
     public int getRawNumber() {

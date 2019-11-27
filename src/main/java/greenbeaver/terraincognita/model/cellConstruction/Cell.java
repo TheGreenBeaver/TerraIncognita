@@ -50,8 +50,10 @@ public class Cell extends ImageView {
             return MoveResult.MAZE_BORDER;
         }
 
+        Coordinate temp = MainEngine.isBlindMode() ? MainEngine.getLocalCoordinate().add(direction) : newCoordinate;
+        Coordinate.CoordinateState state = temp.getCoordinateState();
         Cell probableResult = MainEngine.getMaze()[newCoordinate.getY()][newCoordinate.getX()];
-        if (probableResult.getCellType() == CellType.PORTAL) {
+        if (probableResult.getCellType() == CellType.PORTAL && state == Coordinate.CoordinateState.UNKNOWN) {
             Coordinate[] transitions = MainEngine.getPortalTransitions();
             int portalIndex = UIHandler.getNumOfPortal(probableResult.coordinate);
             Coordinate actualNewCoordinate = transitions[(portalIndex == transitions.length - 1) ? 0 : portalIndex + 1];
@@ -65,10 +67,9 @@ public class Cell extends ImageView {
                 return MoveResult.UNREACHABLE_CELL;
             }
 
-            Coordinate temp = MainEngine.isBlindMode() ? MainEngine.getLocalCoordinate().add(direction) : newCoordinate;
-            return temp.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE
-                    ? MoveResult.ALREADY_VISITED_CELL
-                    : MoveResult.SUCCESSFUL;
+            return state == Coordinate.CoordinateState.UNKNOWN
+                    ? MoveResult.SUCCESSFUL
+                    : MoveResult.ALREADY_VISITED_CELL;
         }
     }
 
