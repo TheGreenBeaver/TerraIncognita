@@ -4,10 +4,15 @@ import greenbeaver.terraincognita.model.cellConstruction.Coordinate;
 import greenbeaver.terraincognita.model.cellConstruction.Direction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 class RadialCheck {
     private final Coordinate initial;
     private final ArrayList<ArrayList<Coordinate>> sides;
+
+    private final boolean[][] adjacency;
+    private final boolean[] visited;
+    private boolean marker;
 
     private Pair<Coordinate, Direction> priority1;
     private Pair<Coordinate, Direction> priority2;
@@ -29,13 +34,47 @@ class RadialCheck {
         priority1 = null;
         priority2 = null;
         priority3 = null;
+
+        adjacency = MainEngine.getCurrentAdjacency();
+        visited = new boolean[adjacency.length];
+    }
+
+    private boolean dfs(Coordinate start, Coordinate searching) {
+        Arrays.fill(visited, false);
+        marker = false;
+
+        dfs(start.getRawNumber(), searching.getRawNumber());
+
+        return marker;
+    }
+
+    private void dfs(int start, int searching) {
+
+        if (marker) {
+            return;
+        }
+
+        visited[start] = true;
+
+        if (start == searching) {
+            marker = true;
+            return;
+        }
+
+        for (int i = 0; i < adjacency.length; i++) {
+            if (adjacency[start][i] && !visited[i]) {
+                dfs(i, searching);
+            }
+        }
     }
 
     // checks if the probable Coordinate can be reached from the coordinate that's to the (direction) from it
     private Pair<Coordinate, Direction> calculateCorner(Direction direction, Coordinate probable) {
         Coordinate check = probable.add(direction);
         if ((check.fitsLocally() || check.fits()) && check.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
-            return new Pair<>(check, direction.opposite());
+            if(dfs(initial, check)) {
+                return new Pair<>(check, direction.opposite());
+            }
         }
 
         return null;
@@ -77,7 +116,7 @@ class RadialCheck {
                 }
 
                 if (startOfLine) { // if true, this corner is added to the actual current side and checked for being an answer
-                    if ((probable.fitsLocally() || probable.fits()) && probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) { // this block sets a low-priority answer if the currently examined corner is reachable from any side
+                    if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) { // this block sets a low-priority answer if the currently examined corner is reachable from any side
                         Pair<Coordinate, Direction> frst = calculateCorner(first, probable);
                         if (frst != null) {
                             priority2 = frst;
@@ -121,6 +160,7 @@ class RadialCheck {
             if (probable.fitsLocally() || probable.fits()) {
                 if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) {
                     priority1 = new Pair<>(initial, direction);
+                    return ValueFound.PRIORITY_1;
                 }
 
                 sides.get(i).add(probable);
@@ -143,18 +183,18 @@ class RadialCheck {
 
                 if (probable.fitsLocally() || probable.fits()) {
                     if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) {
-                        if (from.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+
+                        if (from.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE && dfs(initial, from)) {
                             priority1 = new Pair<>(from, direction);
+                            return;
                         }
 
                         Direction p = direction.firstPerpendicular(); // probable coordinate might not be reachable going straight radially from the center, but if it has a "bridge" neighbour in the same ring, it would still be better than corner
-                        if ((probable.add(p).fitsLocally() || probable.add(p).fits()) && probable.add(p).getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                        if (suitable(probable.add(p))) {
                             priority2 = new Pair<>(probable.add(p), p.opposite());
-                        } else if ((probable.add(p.opposite()).fitsLocally() || probable.add(p.opposite()).fits()) && probable.add(p.opposite()).getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                        } else if (suitable(probable.add(p.opposite()))) {
                             priority2 = new Pair<>(probable.add(p.opposite()), p);
-                        }
-
-                        if ((probable.add(direction).fitsLocally() || probable.add(direction).fits()) && probable.add(direction).getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
+                        } else if (suitable(probable.add(direction))) {
                             priority3 = new Pair<>(probable.add(direction), direction.opposite());
                         }
                     }
@@ -165,6 +205,11 @@ class RadialCheck {
         }
 
         addCorners(level, false);
+    }
+
+    private boolean suitable(Coordinate toCheck) {
+        return (toCheck.fitsLocally() || toCheck.fits()) &&
+                toCheck.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE && dfs(initial, toCheck);
     }
 
     Pair<Coordinate, Direction> find() {
