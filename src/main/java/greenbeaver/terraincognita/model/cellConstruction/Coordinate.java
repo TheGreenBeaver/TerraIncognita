@@ -12,8 +12,7 @@ public class Coordinate {
         KNOWN_BAD_PORTAL,
         KNOWN_PORTAL,
         KNOWN_PORTAL_TO_EXIT,
-        KNOWN_MAZE_BORDER,
-        TEMPORARY_UNKNOWN
+        KNOWN_MAZE_BORDER
     }
 
     private static CoordinateState[][] coordinateStates;

@@ -71,10 +71,8 @@ class RadialCheck {
     // checks if the probable Coordinate can be reached from the coordinate that's to the (direction) from it
     private Pair<Coordinate, Direction> calculateCorner(Direction direction, Coordinate probable) {
         Coordinate check = probable.add(direction);
-        if ((check.fitsLocally() || check.fits()) && check.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE) {
-            if(dfs(initial, check)) {
-                return new Pair<>(check, direction.opposite());
-            }
+        if (suitable(check)) {
+            return new Pair<>(check, direction.opposite());
         }
 
         return null;
@@ -184,7 +182,7 @@ class RadialCheck {
                 if (probable.fitsLocally() || probable.fits()) {
                     if (probable.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) {
 
-                        if (from.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE && dfs(initial, from)) {
+                        if (suitable(from)) {
                             priority1 = new Pair<>(from, direction);
                             return;
                         }
@@ -208,8 +206,15 @@ class RadialCheck {
     }
 
     private boolean suitable(Coordinate toCheck) {
-        return (toCheck.fitsLocally() || toCheck.fits()) &&
-                toCheck.getCoordinateState() == Coordinate.CoordinateState.KNOWN_REACHABLE && dfs(initial, toCheck);
+        if (toCheck.fitsLocally() || toCheck.fits()) {
+            Coordinate.CoordinateState state = toCheck.getCoordinateState();
+            return
+                    (state == Coordinate.CoordinateState.KNOWN_REACHABLE
+                            || state == Coordinate.CoordinateState.KNOWN_PORTAL_TO_EXIT
+                            || state == Coordinate.CoordinateState.KNOWN_PORTAL)
+                            && dfs(initial, toCheck);
+        }
+        return false;
     }
 
     Pair<Coordinate, Direction> find() {
