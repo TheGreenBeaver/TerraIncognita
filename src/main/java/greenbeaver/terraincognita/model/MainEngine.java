@@ -275,6 +275,7 @@ public class MainEngine {
     private static boolean mBorder;
     private static int impossibleDirections;
     private static int levelId;
+    private static Coordinate rTreasure;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -501,6 +502,7 @@ public class MainEngine {
                 }
                 if (treasure == null) {
                     treasure = new Pair<>(blindMode ? newLocalCoordinate : newRealCoordinate, currentLevel);
+                    rTreasure = newRealCoordinate;
                 }
                 if (exit != null) {
                     if (exit.getB().equals(currentLevel)) {
@@ -696,13 +698,7 @@ public class MainEngine {
 
         if (dir == null) {
             if (impossibleDirections == 4) {
-                System.out.println("Blocked at " + currentCell.getCoordinate().toString());
-                if (blindMode || currentLevel.last != null) {
-                    System.out.println("Returning to previous state unfairly");
-                    localsTree.previousState();
-                } else {
-                    return true;
-                }
+                return block();
             } else {
                 Coordinate move = currentLevel.portalFromParent.subtract(localCoordinate);
                 moment = Direction.getByConstructor(move.getX(), move.getY());
@@ -744,13 +740,7 @@ public class MainEngine {
                 shift = false;
 
                 if (failCount >= 4) {
-                    System.out.println("Blocked at " + currentCell.getCoordinate().toString());
-                    if (blindMode || currentLevel.last != null) {
-                        System.out.println("Returning to previous state unfairly");
-                        localsTree.previousState();
-                    } else {
-                        return true;
-                    }
+                    if (block()) return true;
                 }
                 break;
             }
@@ -914,6 +904,21 @@ public class MainEngine {
         return false;
     }
 
+    private static boolean block() {
+        System.out.println("Blocked at " + currentCell.getCoordinate().toString());
+        if ((treasure == null || !treasure.getB().equals(currentLevel)) && (blindMode || currentLevel.last != null)) {
+            System.out.println("Returning to previous state unfairly");
+            localsTree.previousState();
+        } else {
+            if (treasure != null && treasure.getB().equals(currentLevel)) {
+                treasure = null;
+                rTreasure = null;
+            }
+            return true;
+        }
+        return false;
+    }
+
     private static void clearLocals() {
 
         for (int i = 0; i < localCellAmount(); i++) {
@@ -1009,6 +1014,7 @@ public class MainEngine {
         Coordinate.setNewField();
         localPath = new ArrayList<>();
         impossibleDirections = 0;
+        rTreasure = null;
 
         boolean completed = false;
 
@@ -1016,6 +1022,9 @@ public class MainEngine {
             completed = makeMove();
         }
         System.out.println("COMPLETE");
+        if (treasure != null) {
+            System.out.println("Picked up Treasure at " + rTreasure.toString());
+        }
         System.out.println();
     }
 }
