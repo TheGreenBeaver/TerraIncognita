@@ -204,7 +204,10 @@ public class MazeEditorController implements Initializable {
         if (CellType.fieldFilled() && UIHandler.portalNumsOK()) {
             MainEngine.setMaze(currentMaze.getMazeAsArray());
             MainEngine.setPortalTransitions(UIHandler.getPortalTransitions());
-            MainEngine.solve();
+            for (int i = 0; i < 4; i++) {
+                MainEngine.solve(i);
+            }
+            System.out.println("COMPLETE TOTAL");
         } else {
             Stage alarm = new Stage(); // TODO: make a normal alarm window!!!
             Label bad = new Label("You must have at least one entrance, escape and treasure in your maze," +

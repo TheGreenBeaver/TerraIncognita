@@ -127,16 +127,16 @@ public class MainEngine {
             Coordinate p = new Coordinate(0, 0);
             Level actualParent = null;
             if (currentLevel.parent != null) {
-                for (Map.Entry entry : currentLevel.parent.children.entrySet()) {
+                for (Map.Entry<Level, Coordinate> entry : currentLevel.parent.children.entrySet()) {
                     if (currentLevel.equals(entry.getKey())) {
-                        p = (Coordinate) entry.getValue();
+                        p = entry.getValue();
                     }
                 }
             } else {
                 for (Level l: currentLevel.parents) {
-                    for (Map.Entry entry : l.children.entrySet()) {
+                    for (Map.Entry<Level, Coordinate> entry : l.children.entrySet()) {
                         if (currentLevel.equals(entry.getKey())) {
-                            p = (Coordinate) entry.getValue();
+                            p = entry.getValue();
                             actualParent = l;
                         }
                     }
@@ -151,53 +151,54 @@ public class MainEngine {
             } else {
                 if (currentLevel.parent != null) {
                     currentLevel.parent.children.remove(currentLevel);
-                } else {
-                    assert actualParent != null;
+                } else if (actualParent != null) {
                     actualParent.children.remove(currentLevel);
                 }
             }
 
             lastTried = currentLevel.last;
-
-            currentLevel = currentLevel.parent == null ? actualParent : currentLevel.parent;
-            // HIGHER LEVEL FROM NOW ON!!!
-            assert currentLevel != null;
-            currentLevel.pathToExit = !withDelete;
-
             lastCalculatedDirectionFailed = true;
             shift = false;
             failCount = currentLevel.lFailCount + 1;
             // these two guarantee that when returned to the previous Level, the Player will search for a new Direction to move
+            if (actualParent != null || currentLevel.parent != null) {
+                currentLevel = currentLevel.parent == null ? actualParent : currentLevel.parent;
+                // HIGHER LEVEL FROM NOW ON!!!
+                currentLevel.pathToExit = !withDelete;
 
-            yCoordinateDefined = currentLevel.lYCoordinateDefined;
-            xCoordinateDefined = currentLevel.lXCoordinateDefined;
-            Coordinate newCurr = p.add(lastTried.opposite());
-            if (!currentLevel.equals(root)) { // non-blind level just does not have such attributes
-                localPath = new ArrayList<>(currentLevel.lLocalPath);
-                localAdjacencyLinks = new ArrayList<>(currentLevel.lLocalAdjacencyLinks);
-                localCoordinate = newCurr;
-                blindMode = true;
+                yCoordinateDefined = currentLevel.lYCoordinateDefined;
+                xCoordinateDefined = currentLevel.lXCoordinateDefined;
+                Coordinate newCurr = p.add(lastTried.opposite());
+                if (!currentLevel.equals(root)) { // non-blind level just does not have such attributes
+                    localPath = new ArrayList<>(currentLevel.lLocalPath);
+                    localAdjacencyLinks = new ArrayList<>(currentLevel.lLocalAdjacencyLinks);
+                    localCoordinate = newCurr;
+                    blindMode = true;
+                } else {
+                    blindMode = false; // changing blindMode here...
+                }
+
+                // ... so that here, if the Player's returned to non-blind state, we would already change global Coordinate States
+                Coordinate.setCoordinateStates(currentLevel.lCoordinateStates);
+                boolean[][] adjToWork = currentLevel.equals(root) ? adjacencyMatrix : localAdjacencyMatrix;
+                for (int i = 0; i < adjToWork.length; i++) {
+                    System.arraycopy(currentLevel.lAdjacencyMatrix[i], 0, adjToWork[i], 0, adjToWork.length);
+                }
+
+                // here, CoordinateState is also set already according to the current state of blindMode
+                p.setCoordinateState(withDelete
+                                ? Coordinate.CoordinateState.KNOWN_BAD_PORTAL
+                                : Coordinate.CoordinateState.KNOWN_PORTAL_TO_EXIT,
+                        null);
+                if (!currentLevel.equals(root)) {
+                    Coordinate relation = currentLevel.gPortalFromParent.subtract(currentLevel.portalFromParent);
+                    newCurr = newCurr.add(relation.getX(), relation.getY());
+                }
+                currentCell = maze[newCurr.getY()][newCurr.getX()];
             } else {
-                blindMode = false; // changing blindMode here...
+                Coordinate lastP = portalStack.pop();// FIXME: 11.12.2019 ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ!!!!!!!!!!!!!!!!!!
+                currentCell = maze[lastP.getY()][lastP.getX()];
             }
-
-            // ... so that here, if the Player's returned to non-blind state, we would already change global Coordinate States
-            Coordinate.setCoordinateStates(currentLevel.lCoordinateStates);
-            boolean[][] adjToWork = currentLevel.equals(root) ? adjacencyMatrix : localAdjacencyMatrix;
-            for (int i = 0; i < adjToWork.length; i++) {
-                System.arraycopy(currentLevel.lAdjacencyMatrix[i], 0, adjToWork[i], 0, adjToWork.length);
-            }
-
-            // here, CoordinateState is also set already according to the current state of blindMode
-            p.setCoordinateState(withDelete
-                            ? Coordinate.CoordinateState.KNOWN_BAD_PORTAL
-                            : Coordinate.CoordinateState.KNOWN_PORTAL_TO_EXIT,
-                    null);
-            if (!currentLevel.equals(root)) {
-                Coordinate relation = currentLevel.gPortalFromParent.subtract(currentLevel.portalFromParent);
-                newCurr = newCurr.add(relation.getX(), relation.getY());
-            }
-            currentCell = maze[newCurr.getY()][newCurr.getX()];
         }
 
         void unblind() {
@@ -276,6 +277,8 @@ public class MainEngine {
     private static int impossibleDirections;
     private static int levelId;
     private static Coordinate rTreasure;
+    private static int range;
+    private static Stack<Coordinate> portalStack;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -447,8 +450,8 @@ public class MainEngine {
             Coordinate wouldBe = current.add(direction);
             if (wouldBe.fits() || wouldBe.fitsLocally()) {
                 Coordinate.CoordinateState state = wouldBe.getCoordinateState();
-                if (state == Coordinate.CoordinateState.KNOWN_REACHABLE
-                        || state == Coordinate.CoordinateState.UNKNOWN) {
+                if (state == Coordinate.CoordinateState.UNKNOWN
+                        || state == Coordinate.CoordinateState.KNOWN_REACHABLE) {
                     return direction;
                 }
                 if (state == Coordinate.CoordinateState.KNOWN_UNREACHABLE
@@ -930,7 +933,10 @@ public class MainEngine {
         firstStep = true;
 
         Random random = new Random();
-        int directionIndex = random.nextInt(4);
+        int directionIndex = random.nextInt(2) + range;
+        if (directionIndex > 3) {
+            directionIndex = 0;
+        }
 
         general = Direction.values()[directionIndex];
         int bound = mazeWidth <= 9 ? 3 : mazeWidth / 3;
@@ -979,7 +985,7 @@ public class MainEngine {
         throw new NullPointerException("No path from " + startC.toString() + " to " + destC.toString());
     }
 
-    public static void solve() {
+    public static void solve(int range) {
         exit = null;
         treasure = null;
         currentCell = maze[entrance.getY()][entrance.getX()];
@@ -1015,13 +1021,16 @@ public class MainEngine {
         localPath = new ArrayList<>();
         impossibleDirections = 0;
         rTreasure = null;
+        MainEngine.range = range;
+        portalStack = new Stack<>();
 
         boolean completed = false;
 
+        System.out.println("Run #" + range + 1);
         while (!completed) {
             completed = makeMove();
         }
-        System.out.println("COMPLETE");
+        System.out.println("COMPLETE run #" + range + 1);
         if (treasure != null) {
             System.out.println("Picked up Treasure at " + rTreasure.toString());
         }
