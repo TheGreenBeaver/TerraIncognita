@@ -83,4 +83,8 @@ public class UIHandler {
     public static boolean getContinueWithDangerousInput() {
         return continueWithDangerousInput;
     }
+
+    public static HashMap<Coordinate, Integer> getNumsOfPortals() {
+        return numsOfPortals;
+    }
 }

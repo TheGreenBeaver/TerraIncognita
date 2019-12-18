@@ -81,10 +81,13 @@ public class MainEngine {
         }
 
         private Level root;
+        private Stack<Direction> unblindLastMoves;
 
         private LocalsTree() {
             root = new Level(null, null, null);
             root.parents = new ArrayList<>();
+
+            unblindLastMoves = new Stack<>();
         }
 
         // Used when falling into a portal. Creates new Level and saves the properties of the current one in case there'll be a need to return
@@ -124,20 +127,25 @@ public class MainEngine {
 
         // Used only if blocked
         void previousState() {
-            Coordinate p = new Coordinate(0, 0);
-            Level actualParent = null;
-            if (currentLevel.parent != null) {
-                for (Map.Entry<Level, Coordinate> entry : currentLevel.parent.children.entrySet()) {
-                    if (currentLevel.equals(entry.getKey())) {
-                        p = entry.getValue();
-                    }
-                }
-            } else {
-                for (Level l: currentLevel.parents) {
+            Pair<Coordinate, Coordinate> toReturn = portalStack.pop(); // A is realCoordinate, B is localCoordinate or null if the portal was not met in the blindMode
+            Coordinate rp = toReturn.getA(); // realCoordinate of the entering portal
+            if (toReturn.getB() == null) { // if we travelled from unblind to unblind and don't need to change level
+                rp.setCoordinateState(Coordinate.CoordinateState.KNOWN_BAD_PORTAL, null);
+                Coordinate c = rp.add((blindMode ? currentLevel.last : unblindLastMoves.pop()).opposite());
+                currentCell = maze[c.getY()][c.getX()];
+                blindMode = false;
+                currentLevel = root;
+                return;
+            }
+
+            Coordinate lp = toReturn.getB();
+            Level actualParent = currentLevel.parent;
+            if (actualParent == null) {
+                for (Level l : currentLevel.parents) {
                     for (Map.Entry<Level, Coordinate> entry : l.children.entrySet()) {
                         if (currentLevel.equals(entry.getKey())) {
-                            p = entry.getValue();
                             actualParent = l;
+                            break;
                         }
                     }
                 }
@@ -149,61 +157,49 @@ public class MainEngine {
             if (!withDelete) {
                 saveCurrentState();
             } else {
-                if (currentLevel.parent != null) {
-                    currentLevel.parent.children.remove(currentLevel);
-                } else if (actualParent != null) {
-                    actualParent.children.remove(currentLevel);
-                }
+                Objects.requireNonNull(actualParent).children.remove(currentLevel);
             }
 
-            lastTried = currentLevel.last;
+            lastTried = blindMode ? currentLevel.last : unblindLastMoves.pop();
             lastCalculatedDirectionFailed = true;
             shift = false;
-            failCount = currentLevel.lFailCount + 1;
             // these two guarantee that when returned to the previous Level, the Player will search for a new Direction to move
-            if (actualParent != null || currentLevel.parent != null) {
-                currentLevel = currentLevel.parent == null ? actualParent : currentLevel.parent;
-                // HIGHER LEVEL FROM NOW ON!!!
-                currentLevel.pathToExit = !withDelete;
+            currentLevel = actualParent;
+            failCount = Objects.requireNonNull(currentLevel).lFailCount + 1;
+            // HIGHER LEVEL FROM NOW ON!!!
+            currentLevel.pathToExit = !withDelete;
 
-                yCoordinateDefined = currentLevel.lYCoordinateDefined;
-                xCoordinateDefined = currentLevel.lXCoordinateDefined;
-                Coordinate newCurr = p.add(lastTried.opposite());
-                if (!currentLevel.equals(root)) { // non-blind level just does not have such attributes
-                    localPath = new ArrayList<>(currentLevel.lLocalPath);
-                    localAdjacencyLinks = new ArrayList<>(currentLevel.lLocalAdjacencyLinks);
-                    localCoordinate = newCurr;
-                    blindMode = true;
-                } else {
-                    blindMode = false; // changing blindMode here...
-                }
-
-                // ... so that here, if the Player's returned to non-blind state, we would already change global Coordinate States
-                Coordinate.setCoordinateStates(currentLevel.lCoordinateStates);
-                boolean[][] adjToWork = currentLevel.equals(root) ? adjacencyMatrix : localAdjacencyMatrix;
-                for (int i = 0; i < adjToWork.length; i++) {
-                    System.arraycopy(currentLevel.lAdjacencyMatrix[i], 0, adjToWork[i], 0, adjToWork.length);
-                }
-
-                // here, CoordinateState is also set already according to the current state of blindMode
-                p.setCoordinateState(withDelete
-                                ? Coordinate.CoordinateState.KNOWN_BAD_PORTAL
-                                : Coordinate.CoordinateState.KNOWN_PORTAL_TO_EXIT,
-                        null);
-                if (!currentLevel.equals(root)) {
-                    Coordinate relation = currentLevel.gPortalFromParent.subtract(currentLevel.portalFromParent);
-                    newCurr = newCurr.add(relation.getX(), relation.getY());
-                }
-                currentCell = maze[newCurr.getY()][newCurr.getX()];
+            yCoordinateDefined = currentLevel.lYCoordinateDefined;
+            xCoordinateDefined = currentLevel.lXCoordinateDefined;
+            Coordinate newCurr = lp.add(lastTried.opposite());
+            if (!currentLevel.equals(root)) { // non-blind level just does not have such attributes
+                localPath = new ArrayList<>(currentLevel.lLocalPath);
+                localAdjacencyLinks = new ArrayList<>(currentLevel.lLocalAdjacencyLinks);
+                localCoordinate = newCurr;
+                blindMode = true;
             } else {
-                Coordinate lastP = portalStack.pop();// FIXME: 11.12.2019 ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ!!!!!!!!!!!!!!!!!!
-                currentCell = maze[lastP.getY()][lastP.getX()];
+                blindMode = false; // changing blindMode here...
             }
+
+            // ... so that here, if the Player's returned to non-blind state, we would already change global Coordinate States
+            Coordinate.setCoordinateStates(currentLevel.lCoordinateStates);
+            boolean[][] adjToWork = currentLevel.equals(root) ? adjacencyMatrix : localAdjacencyMatrix;
+            for (int i = 0; i < adjToWork.length; i++) {
+                System.arraycopy(currentLevel.lAdjacencyMatrix[i], 0, adjToWork[i], 0, adjToWork.length);
+            }
+
+            // here, CoordinateState is also set already according to the current state of blindMode
+            lp.setCoordinateState(withDelete
+                            ? Coordinate.CoordinateState.KNOWN_BAD_PORTAL
+                            : Coordinate.CoordinateState.KNOWN_PORTAL_TO_EXIT,
+                    null);
+            Coordinate rC = rp.add(lastTried.opposite());
+            currentCell = maze[rC.getY()][rC.getX()];
         }
 
         void unblind() {
             Level lParent = currentLevel.parent;
-            Direction emergencyLast = currentLevel.last;
+            unblindLastMoves.push(currentLevel.last);
             blindMode = false;
 
             Coordinate enteringInParent = lParent.children.get(currentLevel);
@@ -234,8 +230,11 @@ public class MainEngine {
             Coordinate newCurr = localCoordinate.add(relation.getX(), relation.getY());
             currentCell = maze[newCurr.getY()][newCurr.getX()];
 
+            if (exit != null && !exit.getB().equals(root) && exit.getB().equals(currentLevel)) {
+                Coordinate e = exit.getA().add(relation.getX(), relation.getY());
+                exit = new Pair<>(e, root);
+            }
             currentLevel = root;
-            root.last = emergencyLast;
         }
     }
 
@@ -278,7 +277,7 @@ public class MainEngine {
     private static int levelId;
     private static Coordinate rTreasure;
     private static int range;
-    private static Stack<Coordinate> portalStack;
+    private static Stack<Pair<Coordinate, Coordinate>> portalStack;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -524,9 +523,9 @@ public class MainEngine {
                         while (!pathToExit.isEmpty()) {
                             LocalsTree.Level next = pathToExit.pop();
                             Coordinate nextC = new Coordinate(0, 0);
-                            for (Map.Entry entry : currentLvl.children.entrySet()) {
+                            for (Map.Entry<LocalsTree.Level, Coordinate> entry : currentLvl.children.entrySet()) {
                                 if (next.equals(entry.getKey())) {
-                                    nextC = ((Coordinate) entry.getValue()).add(next.last.opposite());
+                                    nextC = entry.getValue().add(next.last.opposite());
                                 }
                             }
                             boolean[][] cAdj = currentLvl.equals(localsTree.root) ? adjacencyMatrix : currentLvl.lAdjacencyMatrix;
@@ -541,7 +540,7 @@ public class MainEngine {
 
                         blindMode = !currentLvl.equals(localsTree.root);
                         ArrayList<Integer> path = bfs(currentC, exit.getA(), currentLvl.lAdjacencyMatrix);
-                        manageBFSPath(path,  currentLvl.gPortalFromParent, currentLvl.portalFromParent);
+                        manageBFSPath(path, currentLvl.gPortalFromParent, currentLvl.portalFromParent);
                         return true;
                     }
                 }
@@ -600,7 +599,7 @@ public class MainEngine {
 
         path.push(current);
         LocalsTree.Level curr = current.parent;
-        boolean found = curr.equals(searching);
+        boolean found = curr.equals(searching); // FIXME: 18.12.2019 check if initially doesn't have parent
 
         while (!curr.equals(searching) && curr.parent != null) {
             path.push(curr);
@@ -699,13 +698,18 @@ public class MainEngine {
 //            }
 //        }
 
-        if (dir == null) {
-            if (impossibleDirections == 4) {
+        if (dir == null) { // no more cells to try
+            if (impossibleDirections == 4) { // not even a not-KNOWN_BAD portal nearby
                 return block();
             } else {
-                Coordinate move = currentLevel.portalFromParent.subtract(localCoordinate);
+                Coordinate p = blindMode
+                        ? currentLevel.portalFromParent
+                        : currentLevel.gPortalFromParent;
+                Coordinate move = blindMode
+                        ? p.subtract(localCoordinate)
+                        : p.subtract(currentCell.getCoordinate());
                 moment = Direction.getByConstructor(move.getX(), move.getY());
-                currentLevel.portalFromParent.setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
+                p.setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
             }
             return false;
         }
@@ -717,9 +721,9 @@ public class MainEngine {
         newLocalCoordinate = localCoordinate.add(dir);
 
         // Old real Cell is currentCell itself
-        oldRealCoordinate = currentCell.getCoordinate();
-
         newRealCell = moveResult.getResult();
+
+        oldRealCoordinate = currentCell.getCoordinate();
         newRealCoordinate = newRealCell.getCoordinate();
 
         switch (moveResult) {
@@ -895,6 +899,7 @@ public class MainEngine {
                 steps.add(new Pair<>(newRealCoordinate, true));
 
                 inPortal.setCoordinateState(Coordinate.CoordinateState.KNOWN_PORTAL, null);
+                portalStack.push(new Pair<>(oldRealCoordinate.add(dir), blindMode ? localCoordinate.add(dir) : null));
                 localsTree.add(dir);
 
                 localCoordinate = new Coordinate(mazeWidth, mazeHeight);
@@ -909,7 +914,7 @@ public class MainEngine {
 
     private static boolean block() {
         System.out.println("Blocked at " + currentCell.getCoordinate().toString());
-        if ((treasure == null || !treasure.getB().equals(currentLevel)) && (blindMode || currentLevel.last != null)) {
+        if ((treasure == null || !treasure.getB().equals(currentLevel)) && !portalStack.isEmpty()) {
             System.out.println("Returning to previous state unfairly");
             localsTree.previousState();
         } else {
@@ -1026,11 +1031,11 @@ public class MainEngine {
 
         boolean completed = false;
 
-        System.out.println("Run #" + range + 1);
+        System.out.println("Run #" + (range + 1));
         while (!completed) {
             completed = makeMove();
         }
-        System.out.println("COMPLETE run #" + range + 1);
+        System.out.println("COMPLETE run #" + (range + 1));
         if (treasure != null) {
             System.out.println("Picked up Treasure at " + rTreasure.toString());
         }
