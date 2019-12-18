@@ -278,6 +278,7 @@ public class MainEngine {
     private static Coordinate rTreasure;
     private static int range;
     private static Stack<Pair<Coordinate, Coordinate>> portalStack;
+    private static boolean inSearchForExit;
 
     // Getters and setters
     public static Coordinate[] getPortalTransitions() {
@@ -488,6 +489,23 @@ public class MainEngine {
             both = true;
             adj[to][from] = true;
         }
+        if (state == Coordinate.CoordinateState.KNOWN_PORTAL && !blindMode) {
+            HashMap<Coordinate, Integer> nop = UIHandler.getNumsOfPortals();
+            int cn = nop.get(fromC);
+            int cond = cn == 0 ? nop.size() : cn;
+            Coordinate distantPortal = new Coordinate(0, 0);
+            Iterator<Map.Entry<Coordinate, Integer>> iter = nop.entrySet().iterator();
+            while (cond != 0) {
+                distantPortal = iter.next().getKey();
+                cond--;
+            }
+            for (Direction direction : Direction.values()) {
+                int neighbour = fromC.add(direction).getRawNumber();
+                if (adj[neighbour][distantPortal.getRawNumber()]) {
+                    adj[to][distantPortal.getRawNumber()] = true;
+                }
+            }
+        }
         if (!blindMode) {
             newRealCoordinate.setCoordinateState(Coordinate.CoordinateState.KNOWN_REACHABLE, null);
         } else {
@@ -508,10 +526,15 @@ public class MainEngine {
                 }
                 if (exit != null) {
                     if (exit.getB().equals(currentLevel)) {
-                        ArrayList<Integer> path =
-                                bfs(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), adj);
-                        manageBFSPath(path, newRealCoordinate, newLocalCoordinate);
-                        return true;
+                        try {
+                            ArrayList<Integer> path =
+                                    bfs(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), adj);
+                            manageBFSPath(path, newRealCoordinate, newLocalCoordinate);
+                            return true;
+                        } catch (NullPointerException e) {
+                            inSearchForExit = true;
+                            return false;
+                        }
                     }
 
                     LocalsTree.Level levelOfExit = exit.getB();
@@ -597,9 +620,12 @@ public class MainEngine {
                                                           @NotNull LocalsTree.Level searching) {
         Stack<LocalsTree.Level> path = new Stack<>();
 
-        path.push(current);
-        LocalsTree.Level curr = current.parent;
-        boolean found = curr.equals(searching); // FIXME: 18.12.2019 check if initially doesn't have parent
+        if (current.parent != null) {
+            path.push(current);
+        }
+
+        LocalsTree.Level curr = current.parent == null ? current : current.parent;
+        boolean found = current.parent != null && curr.equals(searching); // FIXME: 18.12.2019 check if initially doesn't have parent
 
         while (!curr.equals(searching) && curr.parent != null) {
             path.push(curr);
@@ -685,6 +711,15 @@ public class MainEngine {
     }
 
     private static boolean makeMove() {
+        if (inSearchForExit && exit != null && exit.getB().equals(currentLevel)) {
+            try {
+                ArrayList<Integer> path =
+                        bfs(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), blindMode ? localAdjacencyMatrix : adjacencyMatrix);
+                manageBFSPath(path, newRealCoordinate, newLocalCoordinate);
+                return true;
+            } catch (NullPointerException ignored) {
+            }
+        }
         Direction dir = moment == null ? finalCheck(calculateDirection()) : moment; // if we've just used some method that gives us the proper Direction for this moment, we don't need to calculate it
 
 //        if (bordersHit == 2) {
@@ -703,13 +738,22 @@ public class MainEngine {
                 return block();
             } else {
                 Coordinate p = blindMode
-                        ? currentLevel.portalFromParent
+                        ? new Coordinate(mazeWidth, mazeHeight)
                         : currentLevel.gPortalFromParent;
-                Coordinate move = blindMode
-                        ? p.subtract(localCoordinate)
-                        : p.subtract(currentCell.getCoordinate());
-                moment = Direction.getByConstructor(move.getX(), move.getY());
-                p.setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
+                try {
+                    Coordinate move = blindMode
+                            ? p.subtract(localCoordinate)
+                            : p.subtract(currentCell.getCoordinate());
+                    moment = Direction.getByConstructor(move.getX(), move.getY());
+                    p.setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
+                } catch (Exception e) {
+                    for (Direction direction : Direction.values()) {
+                        if (currentCell.getCoordinate().add(direction).getCoordinateState() == Coordinate.CoordinateState.KNOWN_PORTAL) {
+                            moment = direction;
+                            currentCell.getCoordinate().add(direction).setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
+                        }
+                    }
+                }
             }
             return false;
         }
@@ -1028,6 +1072,7 @@ public class MainEngine {
         rTreasure = null;
         MainEngine.range = range;
         portalStack = new Stack<>();
+        inSearchForExit = false;
 
         boolean completed = false;
 

@@ -25,7 +25,7 @@ public enum Direction {
                 return direction;
             }
         }
-        throw new IllegalStateException();
+        throw new IllegalStateException("no direction for X: " + byX + " Y:" + byY);
     }
 
     public int getToX() {
