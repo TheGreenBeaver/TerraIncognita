@@ -1,6 +1,5 @@
 package greenbeaver.terraincognita.model.cellConstruction;
 
-import greenbeaver.terraincognita.controllers.MazeEditorController;
 import greenbeaver.terraincognita.model.MainEngine;
 import greenbeaver.terraincognita.model.UIHandler;
 import greenbeaver.terraincognita.model.Util;

@@ -817,7 +817,9 @@ public class MainEngine {
                                         localCoordinate = localByRaw;
                                     }
                                     if (i < s - 1) {
-                                        steps.add(new Pair<>(realByLocal, true));
+                                        if (i != 0) {
+                                            steps.add(new Pair<>(realByLocal, true));
+                                        }
                                     } else {
                                         assert preLast != null;
                                         Coordinate lastMove = realByLocal.subtract(preLast);

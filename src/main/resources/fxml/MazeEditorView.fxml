@@ -142,20 +142,6 @@
                         <String fx:value="result_text" />
                      </styleClass>
                   </Label>
-                  <Label fx:id="cMoves" prefWidth="133.0" text="Computational Moves Done: ">
-                     <styleClass>
-                        <String fx:value="mayan_text" />
-                        <String fx:value="various_text" />
-                        <String fx:value="result_text" />
-                     </styleClass>
-                  </Label>
-                  <Label fx:id="rMoves" text="Real Moves Done: ">
-                     <styleClass>
-                        <String fx:value="mayan_text" />
-                        <String fx:value="various_text" />
-                        <String fx:value="result_text" />
-                     </styleClass>
-                  </Label>
                </children>
                <padding>
                   <Insets top="20.0" />

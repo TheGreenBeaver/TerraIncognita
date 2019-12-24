@@ -97,10 +97,6 @@ public class MazeEditorController implements Initializable {
     private Label cCellsPassed;
     @FXML
     private Label rCellsPassed;
-    @FXML
-    private Label cMoves;
-    @FXML
-    private Label rMoves;
 
 
     private Stage hint;
@@ -111,7 +107,9 @@ public class MazeEditorController implements Initializable {
         try {
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/Hint.fxml"));
             hintText = (Label) root.getChildrenUnmodifiable().get(0);
-            hint.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+            scene.setFill(Color.TRANSPARENT);
+            hint.setScene(scene);
             hint.initModality(Modality.NONE);
             hint.initStyle(StageStyle.TRANSPARENT);
         } catch (IOException e) {
@@ -309,7 +307,7 @@ public class MazeEditorController implements Initializable {
                 results.put(new Pair<>(MainEngine.exitReached(), MainEngine.treasureFound()), MainEngine.getSteps());
                 if (MainEngine.exitReached() && MainEngine.treasureFound() && (res.isEmpty() || MainEngine.getSteps().size() < res.size())) {
                     res = MainEngine.getSteps();
-                    treasureState.setText("Treasure Found: TRUE");
+                    treasureState.setText("Treasure Found: " + MainEngine.getRTreasure().toString());
                     exitState.setText("Exit Reached: TRUE");
                 }
             }
@@ -317,7 +315,7 @@ public class MazeEditorController implements Initializable {
                 for (Map.Entry<Pair<Boolean, Boolean>, ArrayList<Pair<Coordinate, Boolean>>> entry : results.entrySet()) {
                     if (res.isEmpty() || entry.getValue().size() < res.size()) {
                         res = entry.getValue();
-                        treasureState.setText("Treasure Found: " + (entry.getKey().getB() ? "TRUE" : "FALSE"));
+                        treasureState.setText("Treasure Found: " + (entry.getKey().getB() ? MainEngine.getRTreasure().toString() : "FALSE"));
                         exitState.setText("Exit Reached: " + (entry.getKey().getA() ? "TRUE" : "FALSE"));
                     }
                 }
@@ -346,8 +344,8 @@ public class MazeEditorController implements Initializable {
             }
 
             rCellsPassed.setText("Real Cells Passed: " + r);
-            if (resultView.getChildren().size() > 7) {
-                resultView.getChildren().remove(7);
+            if (resultView.getChildren().size() > 5) {
+                resultView.getChildren().remove(5);
             }
             resultView.getChildren().add(resultList);
         } else {
