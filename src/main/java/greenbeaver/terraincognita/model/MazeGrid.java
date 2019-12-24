@@ -9,14 +9,14 @@ public class MazeGrid extends GridPane {
 
     private Cell[][] mazeAsArray;
 
-    public MazeGrid(double cellSize) {
+    public MazeGrid() {
         setGridLinesVisible(true);
         CellType.flush();
         mazeAsArray = new Cell[MainEngine.getMazeHeight()][MainEngine.getMazeWidth()];
 
         for (int i = 0; i < MainEngine.getMazeWidth(); i++) {
             for (int j = 0; j < MainEngine.getMazeHeight(); j++) {
-                Cell cell = new Cell(new Coordinate(i, j), cellSize);
+                Cell cell = new Cell(new Coordinate(i, j));
                 add(cell, i, j);
                 mazeAsArray[j][i] = cell;
             }

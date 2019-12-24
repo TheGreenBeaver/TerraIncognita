@@ -17,9 +17,6 @@ import java.util.ResourceBundle;
 public class MainController implements Initializable {
 
     @FXML
-    private Button fullScreenMode;
-
-    @FXML
     private VBox mainContainer;
 
     private Node mazeEditorView;
@@ -61,18 +58,6 @@ public class MainController implements Initializable {
     @FXML
     void loadMazeEditor() {
         loadView(mazeEditorView);
-    }
-
-    @FXML
-    void fullScreenMode() {
-        Stage stage = (Stage)fullScreenMode.getScene().getWindow();
-        if (!stage.isFullScreen()) {
-            stage.setFullScreen(true);
-            fullScreenMode.setText("Window");
-        } else {
-            stage.setFullScreen(false);
-            fullScreenMode.setText("FullScreen");
-        }
     }
 
     @FXML

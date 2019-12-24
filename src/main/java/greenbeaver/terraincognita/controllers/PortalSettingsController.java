@@ -14,19 +14,19 @@ import java.util.ResourceBundle;
 
 public class PortalSettingsController implements Initializable {
     @FXML
-    ChoiceBox<Integer> variants;
+    ChoiceBox<String> variants;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         int varAmount = CellType.PORTAL.getUsedAmount();
         for (int i = 0; i < varAmount; i++) {
-            variants.getItems().add(i + 1);
+            variants.getItems().add(String.valueOf(i + 1));
         }
-        variants.setValue(UIHandler.getCurrentPortalNum() + 1);
+        variants.setValue(String.valueOf(UIHandler.getCurrentPortalNum() + 1));
     }
 
     public void submit(ActionEvent actionEvent) {
-        UIHandler.setPortalNum(UIHandler.getCurrentPortal(), variants.getValue() - 1);
+        UIHandler.setPortalNum(UIHandler.getCurrentPortal(), Integer.parseInt(variants.getValue()) - 1);
         ((Stage) ((Node) actionEvent.getSource()).getScene().getWindow()).close();
     }
 }

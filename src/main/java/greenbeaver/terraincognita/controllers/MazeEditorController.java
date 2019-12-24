@@ -2,31 +2,40 @@ package greenbeaver.terraincognita.controllers;
 
 import greenbeaver.terraincognita.model.MainEngine;
 import greenbeaver.terraincognita.model.MazeGrid;
+import greenbeaver.terraincognita.model.Pair;
 import greenbeaver.terraincognita.model.UIHandler;
+import greenbeaver.terraincognita.model.cellConstruction.Cell;
 import greenbeaver.terraincognita.model.cellConstruction.CellType;
+import greenbeaver.terraincognita.model.cellConstruction.Coordinate;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Paint;
+import javafx.scene.paint.Color;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
-
-import static greenbeaver.terraincognita.model.Util.LINE_SEPARATOR;
 
 public class MazeEditorController implements Initializable {
 
@@ -37,122 +46,222 @@ public class MazeEditorController implements Initializable {
         DANGEROUS
     }
     private HashMap<TextField, InputState> inputs = new HashMap<>();
-    private double xOffset = 0;
-    private double yOffset = 0;
     private MazeGrid currentMaze;
 
     private final static int MAX_INPUT = 35;
     private final static int DANGEROUS_RANGE = 20;
-    private final static String NON_NUMERICAL_INPUT_MESSAGE = "You may only" + LINE_SEPARATOR + "use numbers";
-    private final static String ZERO_INPUT_MESSAGE = "Enter a value" + LINE_SEPARATOR + "that's above zero";
-    private final static String MAX_INPUT_MESSAGE = "Enter a value" + LINE_SEPARATOR + "less than " + MAX_INPUT;
-    private final static String DANGEROUS_INPUT_MESSAGE = "Inputs more than "
+    private final static String NON_NUMERICAL_INPUT_MESSAGE = "ERROR: You may only use numbers";
+    private final static String ZERO_INPUT_MESSAGE = "ERROR: Enter a value that's above zero";
+    private final static String MAX_INPUT_MESSAGE = "ERROR: Enter a value less than " + MAX_INPUT;
+    private final static String DANGEROUS_INPUT_MESSAGE = "WARNING: Inputs more than "
             + DANGEROUS_RANGE
-            + LINE_SEPARATOR
-            + " might cause"
-            + LINE_SEPARATOR
-            + "visualising or"
-            + LINE_SEPARATOR
-            + "processing problems";
-    private static final String NOT_ALL_INPUTS_MESSAGE = "You must fill" + LINE_SEPARATOR + "all input fields!";
-    private static final String WRONG_INPUT_MESSAGE = "Enter correct" + LINE_SEPARATOR + "values first!";
-    // TODO: handle line separation with css!!!
+            + " might cause visualising or processing problems";
+    private static final String NOT_ALL_INPUTS_MESSAGE = "ERROR: You must fill all input fields";
+    private static final String WRONG_INPUT_MESSAGE = "ERROR: Enter correct values first";
+    private static final String ONE_PORTAL_MESSAGE = "ERROR: There can't be just one Portal in the Maze," +
+            " each Portal must have a next one";
+    private static final String EQUAL_PORTALS_MESSAGE = "ERROR: Some Portals have equal numbers;" +
+            " right-click on them to fix this";
+    private static final String NO_ESSENTIALS_MESSAGE = "ERROR: You must have an Entrance, an Exit and a Treasure in the Maze";
+
+    @FXML
+    private ImageView filler;
 
     @FXML
     private AnchorPane mazeContainer;
+
     @FXML
-    private Label submissionHint;
-    @FXML
-    private Label mazeHeightHint;
-    @FXML
-    private Label mazeWidthHint;
+    private ImageView heightScull;
     @FXML
     private TextField mazeHeightInput;
+
+    @FXML
+    private ImageView widthScull;
     @FXML
     private TextField mazeWidthInput;
 
+    @FXML
+    private ImageView submissionScull;
+
+    @FXML
+    private Button solveButton;
+
+    @FXML
+    private VBox resultView;
+
+    @FXML
+    private Label treasureState;
+    @FXML
+    private Label exitState;
+    @FXML
+    private Label cCellsPassed;
+    @FXML
+    private Label rCellsPassed;
+    @FXML
+    private Label cMoves;
+    @FXML
+    private Label rMoves;
+
+
+    private Stage hint;
+    private Label hintText;
+    {
+        hint = new Stage();
+
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/fxml/Hint.fxml"));
+            hintText = (Label) root.getChildrenUnmodifiable().get(0);
+            hint.setScene(new Scene(root));
+            hint.initModality(Modality.NONE);
+            hint.initStyle(StageStyle.TRANSPARENT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Stage alarm;
+
+    {
+        alarm = new Stage();
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/fxml/DangerousInputAlarm.fxml"));
+            Scene scene = new Scene(root);
+            scene.setFill(Color.TRANSPARENT);
+            alarm.setScene(scene);
+            alarm.initModality(Modality.WINDOW_MODAL);
+            alarm.initStyle(StageStyle.TRANSPARENT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        Rectangle2D screenRect = Screen.getPrimary().getVisualBounds();
+        double h = screenRect.getHeight();
+        if (h > 800) {
+            filler.setViewport(new Rectangle2D(0, 0, 230, h - 800));
+            filler.setVisible(true);
+        }
+
         inputs.put(mazeWidthInput, InputState.EMPTY);
         inputs.put(mazeHeightInput, InputState.EMPTY);
     }
 
+    private void clearScull(ImageView scull) {
+        scull.setOnMouseClicked(null);
+        scull.setImage(new Image("/images/normalScull.png"));
+    }
+
     private void universal(@Nullable TextField inputField,
-                           Label hint,
-                           @Nullable InputState toReplaceFor,
+                           InputState toReplaceFor,
                            String message,
-                           @Nullable String color) {
+                           ImageView scull) {
+
         if (inputField != null) {
             inputs.replace(inputField, toReplaceFor);
+            clearScull(submissionScull);
         }
-        hint.setText(message);
-        if (color != null) {
-            hint.setTextFill(Paint.valueOf(color)); // TODO: css!!!
+
+        switch (toReplaceFor) {
+            case EMPTY:
+
+            case CORRECT: {
+                clearScull(scull);
+                break;
+            }
+
+            case WRONG: {
+                scull.setImage(new Image("/images/errorScull.png"));
+                handleScull(scull, message);
+                break;
+            }
+
+            case DANGEROUS: {
+                scull.setImage(new Image("/images/warningScull.png"));
+                handleScull(scull, message);
+                break;
+            }
         }
     }
 
-    private void checkInput(TextField inputField, Label hint) {
-        if (!submissionHint.getText().isEmpty()) {
-            submissionHint.setText("");
-        }
+    private void handleScull(ImageView scull, String message) {
+        scull.setOnMouseClicked(e -> {
+            if (hint.isShowing()) {
+                hint.close();
+            } else {
+                double x = e.getScreenX() + 5;
+                double y = e.getScreenY() + 5;
+                hint.setX(x);
+                hint.setY(y);
+                hintText.setText(message);
+                if (hint.getOwner() == null) {
+                    hint.initOwner(scull.getScene().getWindow());
+                }
+                hint.show();
+            }
+        });
+    }
 
+    private void checkInput(TextField inputField, ImageView scull) {
         String inputText = inputField.getText();
         if (inputText.isEmpty()) {
-            universal(inputField, hint, InputState.EMPTY, "", null);
+            universal(inputField, InputState.EMPTY, "", scull);
             return;
         }
 
         if (!inputText.matches("\\d*")) {
-            universal(inputField, hint, InputState.WRONG, NON_NUMERICAL_INPUT_MESSAGE, "#fb0321");
+            universal(inputField, InputState.WRONG, NON_NUMERICAL_INPUT_MESSAGE, scull);
             return;
         }
 
         try {
             int inputValue = Integer.parseInt(inputText);
             if (inputValue < DANGEROUS_RANGE && inputValue > 0) {
-                universal(inputField, hint, InputState.CORRECT, "", null);
+                universal(inputField, InputState.CORRECT, "", scull);
                 return;
             }
 
             if (inputValue == 0) {
-                universal(inputField, hint, InputState.WRONG, ZERO_INPUT_MESSAGE, "#fb0321");
+                universal(inputField, InputState.WRONG, ZERO_INPUT_MESSAGE, scull);
                 return;
             }
 
             if (inputValue > MAX_INPUT) {
-                universal(inputField, hint, InputState.WRONG, MAX_INPUT_MESSAGE, "#fb0321");
+                universal(inputField, InputState.WRONG, MAX_INPUT_MESSAGE, scull);
                 return;
             }
 
-            universal(inputField, hint, InputState.DANGEROUS, DANGEROUS_INPUT_MESSAGE, "#fedd00");
+            universal(inputField, InputState.DANGEROUS, DANGEROUS_INPUT_MESSAGE, scull);
         } catch (NumberFormatException tooBig) {
-            universal(inputField, hint, InputState.WRONG, MAX_INPUT_MESSAGE, "#fb0321");
+            universal(inputField, InputState.WRONG, MAX_INPUT_MESSAGE, scull);
         }
     }
 
     @FXML
     void checkHeightInput() {
-        checkInput(mazeHeightInput, mazeHeightHint);
+        checkInput(mazeHeightInput, heightScull);
     }
 
     @FXML
     void checkWidthInput() {
-        checkInput(mazeWidthInput, mazeWidthHint);
+        checkInput(mazeWidthInput, widthScull);
     }
 
     private void saveAndShowMazeGrid() {
-        submissionHint.setText("");
         MainEngine.setMazeHeight(Integer.parseInt(mazeHeightInput.getText()));
         MainEngine.setMazeWidth(Integer.parseInt(mazeWidthInput.getText()));
-        currentMaze = new MazeGrid(30);
+        currentMaze = new MazeGrid();
+        currentMaze.setOnMouseClicked(e -> clearScull(submissionScull));
         ObservableList<Node> mazeContainerChildren = mazeContainer.getChildren();
         mazeContainerChildren.clear();
         mazeContainer.getChildren().add(currentMaze);
         UIHandler.clearUIHandler();
+        solveButton.setVisible(true);
     }
 
     @FXML
-    private void saveProperties() throws IOException {
+    private void saveProperties() {
         InputState widthState = inputs.get(mazeWidthInput);
         InputState heightState = inputs.get(mazeHeightInput);
 
@@ -162,35 +271,20 @@ public class MazeEditorController implements Initializable {
         }
 
         if (heightState == InputState.EMPTY || widthState == InputState.EMPTY) {
-            universal(null, submissionHint, null, NOT_ALL_INPUTS_MESSAGE, "#fb0321");
+            universal(null, InputState.WRONG, NOT_ALL_INPUTS_MESSAGE, submissionScull);
             return;
         }
 
         if (heightState == InputState.WRONG || widthState == InputState.WRONG) {
-            universal(null, submissionHint, null, WRONG_INPUT_MESSAGE, "#fb0321");
+            universal(null, InputState.WRONG, WRONG_INPUT_MESSAGE, submissionScull);
             return;
         }
 
         if (heightState == InputState.DANGEROUS || widthState == InputState.DANGEROUS) {
 
-            Stage alarm = new Stage();
-            alarm.initStyle(StageStyle.TRANSPARENT);
-
-            Parent root = FXMLLoader.load(getClass().getResource("/fxml/DangerousInputAlarm.fxml"));
-
-            root.setOnMousePressed(event -> {
-                xOffset = event.getSceneX();
-                yOffset = event.getSceneY();
-            });
-
-            root.setOnMouseDragged(event -> {
-                alarm.setX(event.getScreenX() - xOffset);
-                alarm.setY(event.getScreenY() - yOffset);
-            });
-
-            alarm.setScene(new Scene(root));
-            alarm.initModality(Modality.WINDOW_MODAL);
-            alarm.initOwner(submissionHint.getScene().getWindow());
+            if (alarm.getOwner() == null) {
+                alarm.initOwner(mazeContainer.getScene().getWindow());
+            }
             alarm.showAndWait();
 
             if (UIHandler.getContinueWithDangerousInput()) {
@@ -201,25 +295,76 @@ public class MazeEditorController implements Initializable {
 
     @FXML
     void solve() {
-        if (CellType.fieldFilled() && UIHandler.portalNumsOK()) {
+
+        CellType.FieldState fieldState = CellType.fieldFilled();
+        boolean portalsOK = UIHandler.portalNumsOK();
+
+        if (fieldState == CellType.FieldState.GOOD && portalsOK) {
             MainEngine.setMaze(currentMaze.getMazeAsArray());
             MainEngine.setPortalTransitions(UIHandler.getPortalTransitions());
+            HashMap<Pair<Boolean, Boolean>, ArrayList<Pair<Coordinate, Boolean>>> results = new HashMap<>();
+            ArrayList<Pair<Coordinate, Boolean>> res = new ArrayList<>();
             for (int i = 0; i < 4; i++) {
                 MainEngine.solve(i);
+                results.put(new Pair<>(MainEngine.exitReached(), MainEngine.treasureFound()), MainEngine.getSteps());
+                if (MainEngine.exitReached() && MainEngine.treasureFound() && (res.isEmpty() || MainEngine.getSteps().size() < res.size())) {
+                    res = MainEngine.getSteps();
+                    treasureState.setText("Treasure Found: TRUE");
+                    exitState.setText("Exit Reached: TRUE");
+                }
             }
-            System.out.println("COMPLETE TOTAL");
+            if (res.isEmpty()) {
+                for (Map.Entry<Pair<Boolean, Boolean>, ArrayList<Pair<Coordinate, Boolean>>> entry : results.entrySet()) {
+                    if (res.isEmpty() || entry.getValue().size() < res.size()) {
+                        res = entry.getValue();
+                        treasureState.setText("Treasure Found: " + (entry.getKey().getB() ? "TRUE" : "FALSE"));
+                        exitState.setText("Exit Reached: " + (entry.getKey().getA() ? "TRUE" : "FALSE"));
+                    }
+                }
+            }
+
+            cCellsPassed.setText("Computational Cells Passed: " + res.size());
+
+            ListView<Label> resultList = new ListView<>();
+            int r = 0;
+            for (Pair<Coordinate, Boolean> cb : res) {
+
+                if (cb.getB()) {
+                    r++;
+                }
+
+                Label resString = new Label(cb.getA().toString());
+                if (cb.getA().fits()) {
+                    resString.setOnMouseEntered(e -> currentMaze.getMazeAsArray()[cb.getA().getY()][cb.getA().getX()].highlight(cb.getB()));
+                    resString.setOnMouseExited(e -> {
+                        Cell cell = currentMaze.getMazeAsArray()[cb.getA().getY()][cb.getA().getX()];
+                        Image def = cell.getCellType().getImage();
+                        cell.setImage(def);
+                    });
+                }
+                resultList.getItems().add(resString);
+            }
+
+            rCellsPassed.setText("Real Cells Passed: " + r);
+            if (resultView.getChildren().size() > 7) {
+                resultView.getChildren().remove(7);
+            }
+            resultView.getChildren().add(resultList);
         } else {
-            Stage alarm = new Stage(); // TODO: make a normal alarm window!!!
-            Label bad = new Label("You must have at least one entrance, escape and treasure in your maze," +
-                    LINE_SEPARATOR +
-                    "and each portal should have a next portal so there can't be just one of them");
-            VBox box = new VBox();
-            box.getChildren().add(bad);
-            Scene scene = new Scene(box);
-            alarm.setScene(scene);
-            alarm.initModality(Modality.WINDOW_MODAL);
-            alarm.initOwner(submissionHint.getScene().getWindow());
-            alarm.showAndWait();
+            if (!portalsOK) {
+                universal(null, InputState.WRONG, EQUAL_PORTALS_MESSAGE, submissionScull);
+                return;
+            }
+
+            switch (fieldState) {
+                case ONE_PORTAL: {
+                    universal(null, InputState.WRONG, ONE_PORTAL_MESSAGE, submissionScull);
+                    return;
+                }
+                case UNUSED_ESSENTIALS: {
+                    universal(null, InputState.WRONG, NO_ESSENTIALS_MESSAGE, submissionScull);
+                }
+            }
         }
     }
 }

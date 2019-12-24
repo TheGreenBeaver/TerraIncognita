@@ -1,5 +1,6 @@
 package greenbeaver.terraincognita.model.cellConstruction;
 
+import greenbeaver.terraincognita.controllers.MazeEditorController;
 import greenbeaver.terraincognita.model.MainEngine;
 import greenbeaver.terraincognita.model.UIHandler;
 import greenbeaver.terraincognita.model.Util;
@@ -15,25 +16,19 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Cell extends ImageView {
 
-    private final static double MAX_FIT_SIZE = 55;
-    private final static double MIN_FIT_SIZE = 20;
     private CellType cellType;
     private final Coordinate coordinate;
 
-    public Cell(Coordinate coordinate, double fitSize) {
+    public Cell(Coordinate coordinate) {
         super(Util.FLOOR);
         this.coordinate = coordinate;
         cellType = CellType.EMPTY;
 
-        double actualFitSize = (fitSize < MIN_FIT_SIZE) ? MIN_FIT_SIZE : (Math.min(fitSize, MAX_FIT_SIZE));
-
-        setFitWidth(actualFitSize);
-        setFitHeight(actualFitSize);
+        setFitWidth(50);
+        setFitHeight(50);
         setOnMouseClicked(event -> {
             try {
                 onClick(event);
@@ -115,5 +110,9 @@ public class Cell extends ImageView {
             numSettings.setY(event.getScreenY());
             numSettings.showAndWait();
         }
+    }
+
+    public void highlight(boolean real) {
+        this.setImage(real ? cellType.getHImage() : cellType.getPhImage());
     }
 }

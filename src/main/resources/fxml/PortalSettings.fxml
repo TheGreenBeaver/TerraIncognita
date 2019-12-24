@@ -6,9 +6,18 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane prefHeight="80.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.PortalSettingsController">
+<AnchorPane prefHeight="100.0" style="-fx-background-color: #192522; -fx-border-color: #2b5045; -fx-border-width: 4;" stylesheets="@../styles/MainStylesheet.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.PortalSettingsController">
    <children>
-      <ChoiceBox fx:id="variants" prefWidth="50.0" AnchorPane.leftAnchor="5.0" AnchorPane.rightAnchor="5.0" AnchorPane.topAnchor="5.0" />
-      <Button layoutY="54.0" mnemonicParsing="false" onAction="#submit" text="OK" AnchorPane.bottomAnchor="5.0" AnchorPane.rightAnchor="5.0" />
+      <ChoiceBox fx:id="variants" prefWidth="50.0" AnchorPane.leftAnchor="5.0" AnchorPane.rightAnchor="5.0" AnchorPane.topAnchor="5.0">
+         <styleClass>
+            <String fx:value="various_text" />
+            <String fx:value="mayan_text" />
+         </styleClass></ChoiceBox>
+      <Button layoutY="54.0" mnemonicParsing="false" onAction="#submit" text="OK" AnchorPane.bottomAnchor="5.0" AnchorPane.rightAnchor="5.0">
+         <styleClass>
+            <String fx:value="only_text_button" />
+            <String fx:value="small_button" />
+            <String fx:value="mayan_text" />
+         </styleClass></Button>
    </children>
 </AnchorPane>

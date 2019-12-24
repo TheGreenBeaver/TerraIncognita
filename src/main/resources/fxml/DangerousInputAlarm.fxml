@@ -1,23 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.*?>
 <?import java.lang.*?>
 <?import java.util.*?>
 <?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane prefHeight="150.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.DangerousInputAlarmController">
+<AnchorPane id="alarm_window" prefHeight="150.0" prefWidth="400.0" styleClass="panel_with_centered_image" stylesheets="@../styles/MainStylesheet.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.DangerousInputAlarmController">
    <children>
-      <VBox alignment="CENTER" layoutX="233.0" layoutY="174.0" spacing="10.0" style="-fx-background-color: #CCCCCC;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <VBox alignment="CENTER" layoutX="233.0" layoutY="174.0" spacing="20.0" styleClass="transparent_pane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Label text="Are you sure you want to continue with problematic inputs?" />
-            <HBox alignment="CENTER" spacing="30.0">
+            <Label text="Are you sure you want to continue with problematic inputs?">
+               <styleClass>
+                  <String fx:value="various_text" />
+                  <String fx:value="mayan_text" />
+               </styleClass></Label>
+            <HBox alignment="CENTER" spacing="200.0">
                <children>
-                  <Button mnemonicParsing="false" onAction="#confirm" text="Yes" />
-                  <Button mnemonicParsing="false" onAction="#refuse" text="No" />
+                  <Button mnemonicParsing="false" onAction="#confirm" text="Yes">
+                     <styleClass>
+                        <String fx:value="small_button" />
+                        <String fx:value="mayan_text" />
+                        <String fx:value="only_text_button" />
+                     </styleClass></Button>
+                  <Button mnemonicParsing="false" onAction="#refuse" text="No">
+                     <styleClass>
+                        <String fx:value="small_button" />
+                        <String fx:value="mayan_text" />
+                        <String fx:value="only_text_button" />
+                     </styleClass></Button>
                </children>
             </HBox>
          </children>
+         <padding>
+            <Insets top="160.0" />
+         </padding>
       </VBox>
    </children>
 </AnchorPane>

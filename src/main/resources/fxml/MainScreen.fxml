@@ -1,33 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.*?>
+<?import javafx.geometry.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox fx:id="mainContainer" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.MainController">
+<VBox id="sea_background" fx:id="mainContainer" minHeight="400.0" minWidth="600.0" stylesheets="@../styles/MainStylesheet.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.MainController">
    <children>
-      <AnchorPane prefHeight="50.0" style="-fx-background-color: #fff123;">
+      <AnchorPane id="top_panel" prefHeight="50.0" styleClass="panel_with_centered_image">
          <children>
-            <HBox alignment="CENTER" spacing="3.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <HBox alignment="CENTER" spacing="15.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
                <children>
-                  <Button mnemonicParsing="false" onAction="#loadMazeEditor" text="Edit Maze" />
-                  <Button mnemonicParsing="false" onAction="#loadHelp" text="Help" />
+                  <Button id="edit_maze_button" mnemonicParsing="false" onAction="#loadMazeEditor" text="Edit Maze">
+                     <styleClass>
+                        <String fx:value="only_text_button" />
+                        <String fx:value="mayan_text" />
+                     </styleClass></Button>
+                  <Button id="help_button" mnemonicParsing="false" onAction="#loadHelp" text="Help">
+                     <styleClass>
+                        <String fx:value="only_text_button" />
+                        <String fx:value="mayan_text" />
+                     </styleClass></Button>
                </children>
                <opaqueInsets>
                   <Insets />
                </opaqueInsets>
                <padding>
-                  <Insets left="7.0" />
+                  <Insets bottom="5.0" left="7.0" />
                </padding>
             </HBox>
             <HBox alignment="CENTER" layoutX="400.0" layoutY="-25.0" spacing="3.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                <children>
-                  <Button mnemonicParsing="false" onAction="#fold" text="Fold" />
-                  <Button fx:id="fullScreenMode" mnemonicParsing="false" onAction="#fullScreenMode" text="FullScreen" />
-                  <Button mnemonicParsing="false" onAction="#closeApp" text="Close" />
+                  <Button id="iconify_button" mnemonicParsing="false" onAction="#fold" styleClass="only_image_button" text="Fold" />
+                  <Button id="close_button" mnemonicParsing="false" onAction="#closeApp" styleClass="only_image_button" text="Close" />
                </children>
                <padding>
-                  <Insets right="7.0" />
+                  <Insets bottom="2.0" right="7.0" />
                </padding>
             </HBox>
          </children>

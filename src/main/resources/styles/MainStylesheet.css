@@ -1,0 +1,200 @@
+@font-face {
+    -fx-font-family: "Mayan";
+    src: url("../fonts/Mayan.ttf");
+}
+
+*{
+    text-ochra: #decd87;
+    light-greenish-stone: #2b5045;
+    dark-greenish-stone: #192522;
+}
+
+.root {
+    -fx-background-color: transparent;
+}
+
+.button {
+    -fx-cursor: hand;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.choice-box > .label {
+    -fx-text-fill: text-ochra;
+}
+
+.choice-box > .open-button > .arrow {
+    -fx-background-color: text-ochra;
+}
+
+.text-field {
+    -fx-cursor: text;
+}
+
+.mayan_text {
+    -fx-font-family: Mayan;
+    -fx-font-size: 15;
+    -fx-text-fill: text-ochra;
+
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+}
+
+.panel_with_centered_image {
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+#top_panel {
+    -fx-pref-height: 56px;
+    -fx-background-image: url("../images/backgrounds/topPanel.png");
+}
+
+.left_panel_tile_v {
+    -fx-spacing: 4px;
+    -fx-alignment: center;
+}
+
+.left_panel_tile_h {
+    -fx-alignment: center;
+    -fx-spacing: 5px;
+}
+
+#left_panel {
+    -fx-pref-width: 230px;
+    -fx-background-image: url("../images/backgrounds/leftPanel.png");
+}
+
+.only_image_button {
+    -fx-content-display: graphic-only;
+    -fx-background-color: transparent;
+}
+
+#close_button {
+    -fx-graphic: url("../images/buttons/closeButton.png");
+}
+
+#close_button:hover {
+    -fx-graphic: url("../images/buttons/closeButtonHighlight.png");
+}
+
+#close_button:pressed {
+    -fx-graphic: url("../images/buttons/closeButtonPressed.png");
+}
+
+#iconify_button {
+    -fx-graphic: url("../images/buttons/iconifyButton.png");
+}
+
+#iconify_button:hover {
+    -fx-graphic: url("../images/buttons/iconifyButtonHighlight.png");
+}
+
+#iconify_button:pressed {
+    -fx-graphic: url("../images/buttons/iconifyButtonPressed.png");
+}
+
+.only_text_button {
+    -fx-pref-height: 36px;
+    -fx-background-color: transparent;
+}
+
+#edit_maze_button {
+    -fx-pref-width: 96px;
+    -fx-background-image: url("../images/buttons/96x36button.png");
+}
+
+#edit_maze_button:hover {
+    -fx-background-image: url("../images/buttons/96x36buttonHighlight.png");
+}
+
+#edit_maze_button:pressed {
+    -fx-background-image: url("../images/buttons/96x36buttonPressed.png");
+}
+
+#help_button {
+    -fx-pref-width: 56px;
+    -fx-background-image: url("../images/buttons/56x36button.png");
+}
+
+#help_button:hover {
+    -fx-background-image: url("../images/buttons/56x36buttonHighlight.png");
+}
+
+#help_button:pressed {
+    -fx-background-image: url("../images/buttons/56x36buttonPressed.png");
+}
+
+.small_button {
+    -fx-pref-width: 46px;
+    -fx-background-image: url("../images/buttons/46x36button.png");
+}
+
+.small_button:hover {
+    -fx-background-image: url("../images/buttons/46x36buttonHighlight.png");
+}
+
+.small_button:pressed {
+    -fx-background-image: url("../images/buttons/46x36buttonPressed.png");
+}
+
+#solve_button {
+    -fx-pref-width: 66px;
+    -fx-background-image: url("../images/buttons/66x36button.png");
+}
+
+#solve_button:hover {
+    -fx-background-image: url("../images/buttons/66x36buttonHighlight.png");
+}
+
+#solve_button:pressed {
+    -fx-background-image: url("../images/buttons/66x36buttonPressed.png");
+}
+
+#sea_background {
+    -fx-background-image: url("../images/backgrounds/sea.png");
+}
+
+.transparent_pane {
+    -fx-background-color: transparent;
+}
+
+.scull {
+    -fx-image: url("../images/normalScull.png");
+    -fx-cursor: hand;
+}
+
+.various_text {
+    -fx-background-color: dark-greenish-stone;
+    -fx-border-color: light-greenish-stone;
+    -fx-border-width: 5px;
+    -fx-border-style: solid;
+    -fx-background-radius: 7;
+    -fx-border-radius: 4;
+}
+
+.input {
+    -fx-pref-width: 65px;
+    -fx-max-width: 65px;
+}
+
+.hint {
+    -fx-pref-width: 200px;
+    -fx-max-width: 200px;
+}
+
+#alarm_window {
+    -fx-pref-width: 407px;
+    -fx-pref-height: 400px;
+    -fx-background-color: transparent;
+    -fx-background-image: url("../images/backgrounds/alarmWindow.png");
+}
+
+.result_text {
+    -fx-padding: 5px;
+    -fx-text-alignment: center;
+    -fx-pref-width: 250px;
+    -fx-max-width: 250px;
+}
