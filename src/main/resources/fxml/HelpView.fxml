@@ -1,10 +1,168 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
 <?import java.lang.*?>
 <?import java.util.*?>
 <?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-
-<Label text="Help" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="greenbeaver.terraincognita.controllers.HelpController" />
+<ScrollPane hbarPolicy="NEVER" maxHeight="-Infinity" minWidth="-Infinity" pannable="true" prefWidth="1300.0" styleClass="transparent_pane" stylesheets="@../styles/MainStylesheet.css" vbarPolicy="NEVER" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <content>
+      <VBox prefWidth="1300.0" spacing="15.0" styleClass="transparent_pane">
+         <children>
+            <Label text="This is the Terra Incognita Solver - the best App whenever you're stuck at a treasure island with no clue about how to escape.">
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+               <VBox.margin>
+                  <Insets />
+               </VBox.margin>
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+            </Label>
+            <Label text="First of all, enter the parameters of the Island you're trying to... explore. Both Width and Height may vary between 1 and 35 inclusive, but it's strongly recommended not to get lost at Islands much bigger than 20 x 20: their explorations may cause some issues with computation time and visualisation.">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label text="Next step would be to fill the Map with all the stuff you're to meet at this Island. You can do this by simply left-clicking the Cells of the Map. Tiles would appear in this order:">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label graphicTextGap="20.0" text="Just a basic tile - the Floor. No secret traps here. Probably...">
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/tiles/floor.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <VBox.margin>
+                  <Insets />
+               </VBox.margin>
+            </Label>
+            <Label graphicTextGap="20.0" text="Old but gold: these Walls have been built thousands of years ago by some nameless civilization, but still don't let you pass through some Cells successfully.">
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/tiles/wall.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label graphicTextGap="20.0" text="Seriously, don't even try imagining where these anomalies appeared from on this peace of earth. Just remember that each Portal would toss you to the one that has number that's 1 bigger than this one's. To change the numbers of Portals, right-click on them, and you'll get a dropdown menu for this. Of course, no Portals can have same numbers - pay attention to this while filling the Map!">
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/tiles/portal.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label graphicTextGap="20.0" text="The only reason of this whole trouble: Treasure! This one must definitely be collected before escaping!">
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/tiles/treasure.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label graphicTextGap="20.0" text="The spot where the REAL adventure began when your poor old airplane crashed.">
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/tiles/entrance.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label graphicTextGap="20.0" text="Again, you're not here to think - you're here to grab the goods and flee! And thus, no matter how it got here, this old telephone station is your only hope to complete the second part of this plan.">
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/tiles/exit.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label text="When all the preparations are done, hit the Solve button. In a few moments the App will provide you all the information about the exploration of the Island you've described">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label text="At the very right, there'll appear a list of all Cells you'll have to visit during your journey. However, some of them might only be the parts of computations, while you actually should take great care not to even approach them. So, you'll be able to know this all by simply hovering over the text representation of a Coordinate in this List; that exact Coordinate would immediately be highlighted in the Map. The color would be blue or red if the Cell should actually be a part of the Path, and yellow ot orange if not.">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+         </children>
+         <padding>
+            <Insets left="80.0" right="50.0" top="60.0" />
+         </padding>
+      </VBox>
+   </content>
+</ScrollPane>
