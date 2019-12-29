@@ -11,7 +11,7 @@ public enum CellType {
 
     EMPTY(true, MainEngine.cellAmount(), MainEngine.cellAmount(), Util.FLOOR, Util.H_FLOOR, Util.PH_FLOOR),
     WALL(false, MainEngine.cellAmount(), 0, Util.WALL, Util.H_WALL, Util.PH_WALL),
-    PORTAL(true, 10, 0, Util.PORTAL, Util.H_PORTAL, Util.PH_PORTAL);
+    PORTAL(true, 10, 0, Util.PORTAL, null, null);
 
     private final boolean reachable;
     private int maxAmount;

@@ -4,7 +4,6 @@ import greenbeaver.terraincognita.model.cellConstruction.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 
 public class MainEngine {
 
@@ -129,7 +128,7 @@ public class MainEngine {
         static void previousState() {
 
             int lastPseudo = pseudo.pop();
-            for (int i = steps.size() - 1; i >= lastPseudo ; i--) {
+            for (int i = steps.size() - 1; i >= lastPseudo; i--) {
                 steps.get(i).setB(false);
             }
 
@@ -342,16 +341,12 @@ public class MainEngine {
         return localCoordinate;
     }
 
-    static boolean[][] getCurrentAdjacency() {
-        return blindMode ? localAdjacencyMatrix : adjacencyMatrix;
-    }
-
     public static Coordinate getRTreasure() {
         return rTreasure;
     }
 
     public static boolean treasureFound() {
-        return treasure != null;
+        return treasure != null && rTreasure != null;
     }
 
     public static boolean exitReached() {
@@ -519,7 +514,7 @@ public class MainEngine {
                     if (exit.getB().equals(currentLevel)) {
                         try {
                             ArrayList<Integer> path =
-                                    bfs(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), adj);
+                                    bfsSpotToSpot(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), adj);
                             manageBFSPath(path, newRealCoordinate, newLocalCoordinate);
                             return true;
                         } catch (NullPointerException e) {
@@ -545,7 +540,7 @@ public class MainEngine {
                             boolean[][] cAdj = currentLvl.equals(LocalsTree.root) ? adjacencyMatrix : currentLvl.lAdjacencyMatrix;
                             blindMode = !currentLvl.equals(LocalsTree.root);
 
-                            ArrayList<Integer> path = bfs(currentC, nextC, cAdj);
+                            ArrayList<Integer> path = bfsSpotToSpot(currentC, nextC, cAdj);
                             manageBFSPath(path, currentLvl.gPortalFromParent, currentLvl.portalFromParent);
 
                             currentLvl = next;
@@ -553,7 +548,7 @@ public class MainEngine {
                         }
 
                         blindMode = !currentLvl.equals(LocalsTree.root);
-                        ArrayList<Integer> path = bfs(currentC, exit.getA(), currentLvl.lAdjacencyMatrix);
+                        ArrayList<Integer> path = bfsSpotToSpot(currentC, exit.getA(), currentLvl.lAdjacencyMatrix);
                         manageBFSPath(path, currentLvl.gPortalFromParent, currentLvl.portalFromParent);
                         return true;
                     }
@@ -700,10 +695,11 @@ public class MainEngine {
     }
 
     private static boolean makeMove() {
+
         if (inSearchForExit && exit != null && exit.getB().equals(currentLevel)) {
             try {
                 ArrayList<Integer> path =
-                        bfs(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), blindMode ? localAdjacencyMatrix : adjacencyMatrix);
+                        bfsSpotToSpot(blindMode ? newLocalCoordinate : newRealCoordinate, exit.getA(), blindMode ? localAdjacencyMatrix : adjacencyMatrix);
                 manageBFSPath(path, newRealCoordinate, newLocalCoordinate);
                 return true;
             } catch (NullPointerException ignored) {
@@ -726,7 +722,8 @@ public class MainEngine {
                     p.setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
                 } catch (Exception e) {
                     for (Direction direction : Direction.values()) {
-                        if (currentCell.getCoordinate().add(direction).getCoordinateState() == Coordinate.CoordinateState.KNOWN_PORTAL) {
+                        Coordinate coord = currentCell.getCoordinate().add(direction);
+                        if ((coord.fits() || coord.fitsLocally()) && coord.getCoordinateState() == Coordinate.CoordinateState.KNOWN_PORTAL) {
                             moment = direction;
                             currentCell.getCoordinate().add(direction).setCoordinateState(Coordinate.CoordinateState.UNKNOWN, null);
                         }
@@ -778,8 +775,9 @@ public class MainEngine {
                 neighbours(blindMode ? localCoordinate : oldRealCoordinate, oldRealCoordinate);
 
                 failCount = 0;
-                RadialCheck radialCheck = new RadialCheck(blindMode ? localCoordinate : oldRealCoordinate); // searches from a coordinate where the Player was before trying to make move
-                Pair<Coordinate, Direction> d = radialCheck.find();
+                Pair<ArrayList<Integer>, Direction> d =
+                        bfsNearest(blindMode ? localCoordinate : oldRealCoordinate,
+                                blindMode ? localAdjacencyMatrix : adjacencyMatrix);
                 if (d == null) { // if there are no more unknown cells possible to visit
                     if (blindMode) {
                         Coordinate relation = oldRealCoordinate.subtract(localCoordinate);
@@ -797,7 +795,7 @@ public class MainEngine {
                                 }
                             }
                             ArrayList<Integer> pathToLastEnteringPortal =
-                                    bfs(localCoordinate, currentLevel.portalFromParent, localAdjacencyMatrix);
+                                    bfsSpotToSpot(localCoordinate, currentLevel.portalFromParent, localAdjacencyMatrix);
                             for (int t : temp) {
                                 localAdjacencyMatrix[t][pfpN] = false;
                             }
@@ -808,7 +806,7 @@ public class MainEngine {
                                 moment = Direction.getByConstructor(move.getX(), move.getY());
                             } else {
                                 Coordinate preLast = null;
-                                for (int i = 0; i < s; i++) {
+                                for (int i = 1; i < s; i++) {
                                     Coordinate localByRaw = Coordinate.getByRawNumber(pathToLastEnteringPortal.get(i));
                                     Coordinate realByLocal = localByRaw.add(relation.getX(), relation.getY());
                                     if (i == s - 2) {
@@ -817,9 +815,7 @@ public class MainEngine {
                                         localCoordinate = localByRaw;
                                     }
                                     if (i < s - 1) {
-                                        if (i != 0) {
-                                            steps.add(new Pair<>(realByLocal, true));
-                                        }
+                                        steps.add(new Pair<>(realByLocal, true));
                                     } else {
                                         assert preLast != null;
                                         Coordinate lastMove = realByLocal.subtract(preLast);
@@ -840,33 +836,25 @@ public class MainEngine {
                         return true;
                     }
                 } else {
-                    Coordinate nowGoingTo = d.getA();
                     moment = d.getB();
 
                     lastTried = moment;
 
-                    Coordinate forCalculation = blindMode ? localCoordinate : oldRealCoordinate;
-                    if (!nowGoingTo.equals(forCalculation)) {
+                    ArrayList<Integer> path = d.getA();
 
-                        ArrayList<Integer> path =
-                                bfs(forCalculation, nowGoingTo, blindMode ? localAdjacencyMatrix : adjacencyMatrix);
+                    if (!path.isEmpty()) {
+                        manageBFSPath(path, oldRealCoordinate, localCoordinate);
 
                         if (blindMode) {
                             Coordinate relation = oldRealCoordinate.subtract(localCoordinate);
-                            for (int num : path) {
-                                Coordinate localByRaw = Coordinate.getByRawNumber(num);
-                                Coordinate realByLocal = localByRaw.add(relation.getX(), relation.getY());
-                                steps.add(new Pair<>(realByLocal, true));
-                            }
-                            localCoordinate = nowGoingTo;
-                            Coordinate curr = nowGoingTo.add(relation.getX(), relation.getY());
+                            localCoordinate = Coordinate.getByRawNumber(path.get(path.size() - 1));
+                            Coordinate curr = localCoordinate.add(relation.getX(), relation.getY());
                             currentCell = maze[curr.getY()][curr.getX()];
                         } else {
-                            for (Integer num : path) {
-                                steps.add(new Pair<>(Coordinate.getByRawNumber(num), true));
-                            }
-                            currentCell = maze[nowGoingTo.getY()][nowGoingTo.getX()];
+                            oldRealCoordinate = Coordinate.getByRawNumber(path.get(path.size() - 1));
+                            currentCell = maze[oldRealCoordinate.getY()][oldRealCoordinate.getX()];
                         }
+
                     }
                 }
 
@@ -903,9 +891,18 @@ public class MainEngine {
             case PORTAL: {
                 Coordinate inPortal = blindMode ? localCoordinate.add(dir) : oldRealCoordinate.add(dir);
 
-                steps.add(new Pair<>(oldRealCoordinate, true));
+                int comparingCoordinateIndex = steps.size() - 1;
+                while (comparingCoordinateIndex >= 0
+                        && (!steps.get(comparingCoordinateIndex).getA().fits()
+                        || !steps.get(comparingCoordinateIndex).getA().getCell().getCellType().isReachable())) {
+                    comparingCoordinateIndex--;
+                }
+
+                if (!steps.get(comparingCoordinateIndex).getA().equals(oldRealCoordinate)) {
+                    steps.add(new Pair<>(oldRealCoordinate, true));
+                }
                 pseudo.push(steps.size());
-                steps.add(new Pair<>(inPortal, true));
+                steps.add(new Pair<>(oldRealCoordinate.add(dir), true));
                 steps.add(new Pair<>(newRealCoordinate, true));
 
                 inPortal.setCoordinateState(Coordinate.CoordinateState.KNOWN_PORTAL, null);
@@ -964,11 +961,46 @@ public class MainEngine {
         mBorder = false;
     }
 
-    private static ArrayList<Integer> bfs(Coordinate startC, Coordinate destC, boolean[][] matrixToUse) {
+    private static Pair<ArrayList<Integer>, Direction> bfsNearest(Coordinate startC, boolean[][] matrixToUse) {
+        int start = startC.getRawNumber();
+        int actualSize = matrixToUse.length;
+        ArrayList<ArrayList<Integer>> paths = new ArrayList<>(actualSize);
+        for (int i = 0; i < actualSize; i++) {
+            paths.add(new ArrayList<>());
+        }
+        boolean[] visited = new boolean[actualSize];
+        visited[start] = true;
+        ArrayDeque<Integer> queue = new ArrayDeque<>(actualSize);
+        queue.add(start);
+
+        while (!queue.isEmpty()) {
+            int a = queue.poll();
+            for (int i = 0; i < actualSize; i++) {
+                Coordinate aC = Coordinate.getByRawNumber(a);
+                Coordinate iC = Coordinate.getByRawNumber(i);
+                int yDiff = iC.getY() - aC.getY();
+                int xDiff = iC.getX() - aC.getX();
+                if (Math.abs(yDiff) + Math.abs(xDiff) == 1 && iC.getCoordinateState() == Coordinate.CoordinateState.UNKNOWN) {
+                    Direction direction = Direction.getByConstructor(xDiff, yDiff);
+                    return new Pair<>(paths.get(a), direction);
+                }
+                if (matrixToUse[a][i] && !visited[i]) {
+                    paths.set(i, new ArrayList<>(paths.get(a)));
+                    paths.get(i).add(i);
+                    visited[i] = true;
+                    queue.add(i);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static ArrayList<Integer> bfsSpotToSpot(Coordinate startC, Coordinate destC, boolean[][] matrixToUse) {
         int start = startC.getRawNumber();
         int dest = destC.getRawNumber();
 
-        int actualSize = blindMode ? localCellAmount() : cellAmount();
+        int actualSize = matrixToUse.length;
         ArrayList<ArrayList<Integer>> paths = new ArrayList<>(actualSize);
         for (int i = 0; i < actualSize; i++) {
             paths.add(new ArrayList<>());
@@ -977,7 +1009,7 @@ public class MainEngine {
         boolean[] visited = new boolean[actualSize];
         visited[start] = true;
 
-        ArrayBlockingQueue<Integer> queue = new ArrayBlockingQueue<>(actualSize);
+        ArrayDeque<Integer> queue = new ArrayDeque<>(actualSize);
         queue.add(start);
 
         while (!queue.isEmpty()) {
@@ -1040,7 +1072,9 @@ public class MainEngine {
 
         boolean completed = false;
 
-        while (!completed) {
+        int cntr = 0;
+
+        while (!completed && cntr++ < Integer.MAX_VALUE / 2) {
             completed = makeMove();
         }
     }

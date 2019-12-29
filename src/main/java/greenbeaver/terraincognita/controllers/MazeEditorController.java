@@ -1,9 +1,6 @@
 package greenbeaver.terraincognita.controllers;
 
-import greenbeaver.terraincognita.model.MainEngine;
-import greenbeaver.terraincognita.model.MazeGrid;
-import greenbeaver.terraincognita.model.Pair;
-import greenbeaver.terraincognita.model.UIHandler;
+import greenbeaver.terraincognita.model.*;
 import greenbeaver.terraincognita.model.cellConstruction.Cell;
 import greenbeaver.terraincognita.model.cellConstruction.CellType;
 import greenbeaver.terraincognita.model.cellConstruction.Coordinate;
@@ -45,6 +42,7 @@ public class MazeEditorController implements Initializable {
         WRONG,
         DANGEROUS
     }
+
     private HashMap<TextField, InputState> inputs = new HashMap<>();
     private MazeGrid currentMaze;
 
@@ -101,6 +99,7 @@ public class MazeEditorController implements Initializable {
 
     private Stage hint;
     private Label hintText;
+
     {
         hint = new Stage();
 
@@ -303,12 +302,16 @@ public class MazeEditorController implements Initializable {
             HashMap<Pair<Boolean, Boolean>, ArrayList<Pair<Coordinate, Boolean>>> results = new HashMap<>();
             ArrayList<Pair<Coordinate, Boolean>> res = new ArrayList<>();
             for (int i = 0; i < 4; i++) {
-                MainEngine.solve(i);
-                results.put(new Pair<>(MainEngine.exitReached(), MainEngine.treasureFound()), MainEngine.getSteps());
-                if (MainEngine.exitReached() && MainEngine.treasureFound() && (res.isEmpty() || MainEngine.getSteps().size() < res.size())) {
-                    res = MainEngine.getSteps();
-                    treasureState.setText("Treasure Found: " + MainEngine.getRTreasure().toString());
-                    exitState.setText("Exit Reached: TRUE");
+                try {
+                    MainEngine.solve(i);
+                    results.put(new Pair<>(MainEngine.exitReached(), MainEngine.treasureFound()), MainEngine.getSteps());
+                    if (MainEngine.exitReached() && MainEngine.treasureFound() && (res.isEmpty() || MainEngine.getSteps().size() < res.size())) {
+                        res = MainEngine.getSteps();
+                        treasureState.setText("Treasure Found: " + MainEngine.getRTreasure().toString());
+                        exitState.setText("Exit Reached: TRUE");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
             if (res.isEmpty()) {
@@ -324,6 +327,7 @@ public class MazeEditorController implements Initializable {
             cCellsPassed.setText("Computational Cells Passed: " + res.size());
 
             ListView<Label> resultList = new ListView<>();
+            resultList.getStylesheets().add("/styles/MainStylesheet.css");
             int r = 0;
             for (Pair<Coordinate, Boolean> cb : res) {
 
@@ -332,11 +336,19 @@ public class MazeEditorController implements Initializable {
                 }
 
                 Label resString = new Label(cb.getA().toString());
+                resString.getStyleClass().addAll("mayan_text", "various_text", "step");
                 if (cb.getA().fits()) {
                     resString.setOnMouseEntered(e -> currentMaze.getMazeAsArray()[cb.getA().getY()][cb.getA().getX()].highlight(cb.getB()));
                     resString.setOnMouseExited(e -> {
                         Cell cell = currentMaze.getMazeAsArray()[cb.getA().getY()][cb.getA().getX()];
-                        Image def = cell.getCellType().getImage();
+                        Image def;
+                        CellType type = cell.getCellType();
+                        if (type != CellType.PORTAL) {
+                            def = cell.getCellType().getImage();
+                        } else {
+                            int num = UIHandler.getNumOfPortal(cb.getA());
+                            def = Util.NUMBERED_PORTALS[num];
+                        }
                         cell.setImage(def);
                     });
                 }

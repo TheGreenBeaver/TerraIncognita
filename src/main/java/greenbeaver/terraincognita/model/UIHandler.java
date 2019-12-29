@@ -73,7 +73,12 @@ public class UIHandler {
     }
 
     public static int getNumOfPortal(Coordinate portal) {
-        return numsOfPortals.get(portal);
+        for (Map.Entry<Coordinate, Integer> e : numsOfPortals.entrySet()) {
+            if (e.getKey().equals(portal)) {
+                return e.getValue();
+            }
+        }
+        throw new NullPointerException("No portal for coordinate " + portal.toString());
     }
 
     public static void setContinueWithDangerousInput(boolean continueWithDangerousInput) {

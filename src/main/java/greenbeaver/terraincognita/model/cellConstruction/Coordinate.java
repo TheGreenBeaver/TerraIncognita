@@ -60,6 +60,10 @@ public class Coordinate {
         this.y = y;
     }
 
+    public Cell getCell() {
+        return MainEngine.getMaze()[y][x];
+    }
+
     public Coordinate copy() {
         return new Coordinate(x, y);
     }

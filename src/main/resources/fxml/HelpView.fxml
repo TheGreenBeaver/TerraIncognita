@@ -141,7 +141,23 @@
                   <String fx:value="various_text" />
                </styleClass>
             </Label>
-            <Label text="When all the preparations are done, hit the Solve button. In a few moments the App will provide you all the information about the exploration of the Island you've described">
+            <Label graphicTextGap="20.0" text="Although the mystical inhabitants of this Island have disappeared many centuries ago, their spirits are still here, imprisoned inside their horrifying war trophies, looking after You. This might sound pretty scary, but is actually quite helpful while You do all the preparations: the light in Sculls' eye sockets would represent that You've messed up somewhere. Don't be afraid and click on the highlighted Scull to get some more info; click again when completed reading.">
+               <graphic>
+                  <ImageView fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/normalScull.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <padding>
+                  <Insets bottom="4.0" left="15.0" right="4.0" top="4.0" />
+               </padding>
+               <styleClass>
+                  <String fx:value="mayan_text" />
+                  <String fx:value="various_text" />
+               </styleClass>
+            </Label>
+            <Label text="When all the preparations are done, hit the Solve button. In a few moments the App will provide you all the information about the exploration of the Island you've described.">
                <padding>
                   <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
                </padding>

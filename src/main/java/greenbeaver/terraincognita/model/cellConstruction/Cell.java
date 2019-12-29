@@ -108,10 +108,16 @@ public class Cell extends ImageView {
             numSettings.setX(event.getScreenX());
             numSettings.setY(event.getScreenY());
             numSettings.showAndWait();
+            setImage(Util.NUMBERED_PORTALS[UIHandler.getNumOfPortal(coordinate)]);
         }
     }
 
     public void highlight(boolean real) {
-        this.setImage(real ? cellType.getHImage() : cellType.getPhImage());
+        if (cellType != CellType.PORTAL) {
+            this.setImage(real ? cellType.getHImage() : cellType.getPhImage());
+        } else {
+            int n = UIHandler.getNumOfPortal(coordinate);
+            this.setImage(real ? Util.H_NUMBERED_PORTALS[n] : Util.PH_NUMBERED_PORTALS[n]);
+        }
     }
 }

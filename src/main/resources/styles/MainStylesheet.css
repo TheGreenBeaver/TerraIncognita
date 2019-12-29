@@ -9,16 +9,8 @@
     dark-greenish-stone: #192522;
 }
 
-.root {
-    -fx-background-color: transparent;
-}
-
 .button {
     -fx-cursor: hand;
-}
-
-.scroll-pane > .viewport {
-    -fx-background-color: transparent;
 }
 
 .choice-box > .label {
@@ -157,9 +149,6 @@
     -fx-background-image: url("../images/backgrounds/sea.png");
 }
 
-.transparent_pane {
-    -fx-background-color: transparent;
-}
 
 .scull {
     -fx-image: url("../images/normalScull.png");
@@ -173,6 +162,11 @@
     -fx-border-style: solid;
     -fx-background-radius: 7;
     -fx-border-radius: 4;
+}
+
+.step {
+    -fx-text-alignment: center;
+    -fx-pref-width: 200px;
 }
 
 .input {
@@ -197,4 +191,41 @@
     -fx-text-alignment: center;
     -fx-pref-width: 250px;
     -fx-max-width: 250px;
+}
+
+.check-box > .viewport,
+.check-box .context-menu,
+.scroll-pane > .viewport,
+.root,
+.list-view .scroll-bar,
+.list-cell,
+.list-view .increment-button,
+.list-view .decrement-button,
+.list-view,
+.transparent_pane {
+    -fx-background-color: transparent;
+    -fx-base: transparent;
+}
+
+.list-view .scroll-bar .thumb {
+    -fx-background-color: light-greenish-stone;
+    -fx-border-color: transparent;
+}
+
+.choice-box .context-menu {
+    -fx-border-color: light-greenish-stone;
+}
+
+.choice-box .menu-item {
+    -fx-font-family: Mayan;
+    -fx-font-size: 15;
+    -fx-text-fill: text-ochra;
+
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-background-color: dark-greenish-stone;
+}
+
+.choice-box .menu-item:hover {
+    -fx-background-color: light-greenish-stone;
 }
