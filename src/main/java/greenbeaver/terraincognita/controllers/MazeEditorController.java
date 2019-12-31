@@ -401,6 +401,7 @@ public class MazeEditorController implements Initializable {
             int r = 0;
             int rm = 0;
             boolean delay = false;
+            boolean prevR = true;
             Coordinate prev = MainEngine.getEntrance();
 
             for (int i = 0; i < res.size(); i++) {
@@ -429,8 +430,9 @@ public class MazeEditorController implements Initializable {
                     Label moveString = new Label(direction.toString());
                     moveString.getStyleClass().addAll("mayan_text", "various_text", "step");
                     Coordinate finalPrev = prev;
+                    boolean finalPrevR = prevR;
                     moveString.setOnMouseEntered(e -> {
-                        finalPrev.getCell().highlight(true);
+                        finalPrev.getCell().highlight(finalPrevR);
                         if (coordinate.fits()) {
                             coordinate.getCell().highlight(real);
                         }
@@ -449,6 +451,7 @@ public class MazeEditorController implements Initializable {
 
                 if (coordinate.fits() && coordinate.getCell().getCellType().isReachable()) {
                     prev = coordinate;
+                    prevR = real;
                 }
 
                 delay = isPortal;
