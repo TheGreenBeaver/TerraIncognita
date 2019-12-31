@@ -4,6 +4,10 @@ import greenbeaver.terraincognita.model.*;
 import greenbeaver.terraincognita.model.cellConstruction.Cell;
 import greenbeaver.terraincognita.model.cellConstruction.CellType;
 import greenbeaver.terraincognita.model.cellConstruction.Coordinate;
+import greenbeaver.terraincognita.model.cellConstruction.Direction;
+import javafx.animation.TranslateTransition;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,12 +23,17 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -35,6 +44,37 @@ import java.util.Map;
 import java.util.ResourceBundle;
 
 public class MazeEditorController implements Initializable {
+
+    private class ToggleSwitch extends Parent {
+
+        private BooleanProperty switchedOn = new SimpleBooleanProperty(false);
+
+        private TranslateTransition translateAnimation = new TranslateTransition(Duration.seconds(0.15));
+
+        ToggleSwitch(double height) {
+            Rectangle background = new Rectangle(height * 2, height);
+            background.setArcWidth(height);
+            background.setArcHeight(height);
+            background.setFill(Paint.valueOf("#192522"));
+            background.setStroke(Paint.valueOf("#2b5045"));
+
+            Circle trigger = new Circle(height / 2);
+            trigger.setCenterX(height / 2);
+            trigger.setCenterY(height / 2);
+            trigger.setFill(Paint.valueOf("#2b5045"));
+
+            translateAnimation.setNode(trigger);
+
+            getChildren().addAll(background, trigger);
+
+            switchedOn.addListener((obs, oldState, newState) -> {
+                translateAnimation.setToX(newState ? height : 0);
+                translateAnimation.play();
+            });
+
+            setOnMouseClicked(e -> switchedOn.set(!switchedOn.get()));
+        }
+    }
 
     private enum InputState {
         CORRECT,
@@ -95,7 +135,13 @@ public class MazeEditorController implements Initializable {
     private Label cCellsPassed;
     @FXML
     private Label rCellsPassed;
+    @FXML
+    private Label cMoves;
+    @FXML
+    private Label rMoves;
 
+    @FXML
+    private HBox toggle;
 
     private Stage hint;
     private Label hintText;
@@ -132,6 +178,23 @@ public class MazeEditorController implements Initializable {
         }
     }
 
+    private ToggleSwitch stepsOrMoves;
+
+    private void clearResults() {
+        treasureState.setText("Treasure Found: ");
+        exitState.setText("Exit Reached: ");
+        cCellsPassed.setText("Computational Cells Passed: ");
+        rCellsPassed.setText("Real Cells Passed: ");
+        cMoves.setText("Computational Moves: ");
+        rMoves.setText("Real Moves: ");
+
+        stepsOrMoves.setOnMouseClicked(ev -> stepsOrMoves.switchedOn.set(!stepsOrMoves.switchedOn.get()));
+
+        if (resultView.getChildren().size() > 8) {
+            resultView.getChildren().remove(8);
+        }
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         Rectangle2D screenRect = Screen.getPrimary().getVisualBounds();
@@ -143,6 +206,9 @@ public class MazeEditorController implements Initializable {
 
         inputs.put(mazeWidthInput, InputState.EMPTY);
         inputs.put(mazeHeightInput, InputState.EMPTY);
+
+        stepsOrMoves = new ToggleSwitch(40);
+        toggle.getChildren().add(1, stepsOrMoves);
     }
 
     private void clearScull(ImageView scull) {
@@ -246,10 +312,14 @@ public class MazeEditorController implements Initializable {
     }
 
     private void saveAndShowMazeGrid() {
+        clearResults();
         MainEngine.setMazeHeight(Integer.parseInt(mazeHeightInput.getText()));
         MainEngine.setMazeWidth(Integer.parseInt(mazeWidthInput.getText()));
         currentMaze = new MazeGrid();
-        currentMaze.setOnMouseClicked(e -> clearScull(submissionScull));
+        currentMaze.setOnMouseClicked(e -> {
+            clearScull(submissionScull);
+            clearResults();
+        });
         ObservableList<Node> mazeContainerChildren = mazeContainer.getChildren();
         mazeContainerChildren.clear();
         mazeContainer.getChildren().add(currentMaze);
@@ -326,40 +396,86 @@ public class MazeEditorController implements Initializable {
 
             cCellsPassed.setText("Computational Cells Passed: " + res.size());
 
-            ListView<Label> resultList = new ListView<>();
-            resultList.getStylesheets().add("/styles/MainStylesheet.css");
+            ListView<Label> stepsList = new ListView<>();
+            ListView<Label> movesList = new ListView<>();
             int r = 0;
-            for (Pair<Coordinate, Boolean> cb : res) {
+            int rm = 0;
+            boolean delay = false;
+            Coordinate prev = MainEngine.getEntrance();
 
-                if (cb.getB()) {
+            for (int i = 0; i < res.size(); i++) {
+
+                Pair<Coordinate, Boolean> cb = res.get(i);
+                Coordinate coordinate = cb.getA();
+                boolean real = cb.getB();
+                boolean isPortal = coordinate.fits() && coordinate.getCell().getCellType() == CellType.PORTAL;
+
+                if (real) {
                     r++;
                 }
 
-                Label resString = new Label(cb.getA().toString());
-                resString.getStyleClass().addAll("mayan_text", "various_text", "step");
-                if (cb.getA().fits()) {
-                    resString.setOnMouseEntered(e -> currentMaze.getMazeAsArray()[cb.getA().getY()][cb.getA().getX()].highlight(cb.getB()));
-                    resString.setOnMouseExited(e -> {
-                        Cell cell = currentMaze.getMazeAsArray()[cb.getA().getY()][cb.getA().getX()];
-                        Image def;
-                        CellType type = cell.getCellType();
-                        if (type != CellType.PORTAL) {
-                            def = cell.getCellType().getImage();
-                        } else {
-                            int num = UIHandler.getNumOfPortal(cb.getA());
-                            def = Util.NUMBERED_PORTALS[num];
+                Coordinate diff = coordinate.subtract(prev);
+
+                int checkSum = Math.abs(diff.getX()) + Math.abs(diff.getY());
+
+                if (i > 0 && !delay && checkSum == 1) {
+
+                    if (real) {
+                        rm++;
+                    }
+
+                    Direction direction = Direction.getByConstructor(diff.getX(), diff.getY());
+
+                    Label moveString = new Label(direction.toString());
+                    moveString.getStyleClass().addAll("mayan_text", "various_text", "step");
+                    Coordinate finalPrev = prev;
+                    moveString.setOnMouseEntered(e -> {
+                        finalPrev.getCell().highlight(true);
+                        if (coordinate.fits()) {
+                            coordinate.getCell().highlight(real);
                         }
-                        cell.setImage(def);
                     });
+
+                    moveString.setOnMouseExited(e -> {
+                        mouseExit(finalPrev);
+
+                        if (coordinate.fits()) {
+                            mouseExit(coordinate);
+                        }
+                    });
+
+                    movesList.getItems().add(moveString);
                 }
-                resultList.getItems().add(resString);
+
+                if (coordinate.fits() && coordinate.getCell().getCellType().isReachable()) {
+                    prev = coordinate;
+                }
+
+                delay = isPortal;
+
+                Label stepString = new Label(coordinate.toString());
+                stepString.getStyleClass().addAll("mayan_text", "various_text", "step");
+                if (coordinate.fits()) {
+                    stepString.setOnMouseEntered(e -> coordinate.getCell().highlight(real));
+                    stepString.setOnMouseExited(e -> mouseExit(coordinate));
+                }
+                stepsList.getItems().add(stepString);
             }
 
             rCellsPassed.setText("Real Cells Passed: " + r);
-            if (resultView.getChildren().size() > 5) {
-                resultView.getChildren().remove(5);
+            cMoves.setText("Computational Moves: " + movesList.getItems().size());
+            rMoves.setText("Real Moves: " + rm);
+            if (resultView.getChildren().size() > 8) {
+                resultView.getChildren().remove(8);
             }
-            resultView.getChildren().add(resultList);
+
+            stepsOrMoves.setOnMouseClicked(e -> {
+                stepsOrMoves.switchedOn.set(!stepsOrMoves.switchedOn.get());
+                resultView.getChildren().remove(8);
+                resultView.getChildren().add(stepsOrMoves.switchedOn.get() ? movesList : stepsList);
+            });
+
+            resultView.getChildren().add(stepsOrMoves.switchedOn.get() ? movesList : stepsList);
         } else {
             if (!portalsOK) {
                 universal(null, InputState.WRONG, EQUAL_PORTALS_MESSAGE, submissionScull);
@@ -376,5 +492,18 @@ public class MazeEditorController implements Initializable {
                 }
             }
         }
+    }
+
+    private void mouseExit(Coordinate coordinate) {
+        Cell cell = coordinate.getCell();
+        Image def;
+        CellType type = cell.getCellType();
+        if (type != CellType.PORTAL) {
+            def = cell.getCellType().getImage();
+        } else {
+            int num = UIHandler.getNumOfPortal(coordinate);
+            def = Util.NUMBERED_PORTALS[num];
+        }
+        cell.setImage(def);
     }
 }

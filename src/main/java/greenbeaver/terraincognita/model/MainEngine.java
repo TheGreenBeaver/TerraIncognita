@@ -321,6 +321,8 @@ public class MainEngine {
         MainEngine.entrance = entrance;
     }
 
+    public static Coordinate getEntrance() { return entrance; }
+
     public static ArrayList<Pair<Coordinate, Boolean>> getSteps() {
         return steps;
     }
